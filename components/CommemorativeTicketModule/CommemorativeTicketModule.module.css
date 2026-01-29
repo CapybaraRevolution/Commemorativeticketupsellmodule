@@ -1,0 +1,625 @@
+/**
+ * CommemorativeTicketModule CSS Module
+ * 
+ * Styles for the commemorative ticket upsell component
+ */
+
+/* Container */
+.container {
+  position: relative;
+  background-color: var(--color-white);
+  border: 2px solid var(--color-primary);
+  padding: var(--spacing-6);
+}
+
+/* Header */
+.header {
+  display: flex;
+  gap: var(--spacing-6);
+  align-items: center;
+  cursor: pointer;
+}
+
+.headerClickable {
+  composes: header;
+}
+
+.headerStatic {
+  composes: header;
+  cursor: default;
+}
+
+/* Preview Image */
+.previewImage {
+  flex-shrink: 0;
+  width: 80px;
+  height: 112px;
+  background-color: var(--color-gray-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+
+.previewImageIcon {
+  width: 28px;
+  height: 28px;
+  color: var(--color-gray-500);
+}
+
+/* Content */
+.content {
+  flex: 1;
+}
+
+.contentPadded {
+  padding-right: var(--spacing-12);
+}
+
+.title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: var(--spacing-3);
+  letter-spacing: 0.025em;
+  line-height: 1.25;
+}
+
+.titleCentered {
+  composes: title;
+  text-align: center;
+  margin-bottom: var(--spacing-4);
+}
+
+.description {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-2);
+  line-height: 1.6;
+}
+
+.subDescription {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+  margin-bottom: var(--spacing-2);
+  line-height: 1.6;
+}
+
+.price {
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+}
+
+/* Chevron Button */
+.chevronButton {
+  position: absolute;
+  top: var(--spacing-4);
+  right: var(--spacing-4);
+  color: var(--color-black);
+  padding: var(--spacing-1);
+  transition: color var(--transition-fast);
+}
+
+.chevronButton:hover {
+  color: var(--color-primary);
+}
+
+.chevronIcon {
+  width: 24px;
+  height: 24px;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: var(--spacing-4);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--spacing-4);
+}
+
+/* Buttons */
+.primaryButton {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  padding: var(--spacing-3) var(--spacing-6);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.primaryButton:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+.primaryButton:disabled {
+  background-color: var(--color-gray-400);
+  color: var(--color-gray-200);
+}
+
+.secondaryButton {
+  padding: var(--spacing-3) var(--spacing-6);
+  border: 2px solid var(--color-gray-400);
+  color: var(--color-black);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  background-color: transparent;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.secondaryButton:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.linkButton {
+  font-size: var(--font-size-sm);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.linkButton:hover {
+  color: var(--color-primary);
+}
+
+.linkButtonBold {
+  composes: linkButton;
+  font-weight: 700;
+}
+
+/* Stepper */
+.stepper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--spacing-6);
+}
+
+.stepperPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-3) var(--spacing-6);
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.stepNumber {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.stepNumberActive {
+  composes: stepNumber;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.stepNumberCompleted {
+  composes: stepNumber;
+  background-color: var(--color-success);
+  color: var(--color-white);
+}
+
+.stepNumberInactive {
+  composes: stepNumber;
+  background-color: var(--color-gray-300);
+  color: var(--color-gray-600);
+}
+
+.stepLabel {
+  font-size: var(--font-size-sm);
+}
+
+.stepLabelActive {
+  composes: stepLabel;
+  font-weight: 700;
+}
+
+.stepLabelInactive {
+  composes: stepLabel;
+  color: var(--color-gray-600);
+}
+
+.stepDivider {
+  height: 1px;
+  width: 32px;
+  background-color: var(--color-gray-400);
+}
+
+/* Design Gallery */
+.sectionTitle {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--spacing-3);
+  text-align: center;
+}
+
+.sectionTitleLeft {
+  composes: sectionTitle;
+  text-align: left;
+  font-size: var(--font-size-sm);
+}
+
+.designGallery {
+  display: flex;
+  gap: var(--spacing-4);
+  justify-content: center;
+  max-width: 500px;
+  margin: 0 auto var(--spacing-6);
+}
+
+.designCard {
+  flex: 1;
+  max-width: 140px;
+}
+
+.designPreview {
+  height: 128px;
+  margin-bottom: var(--spacing-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+
+.designPreviewA {
+  composes: designPreview;
+  background-color: var(--color-design-a);
+}
+
+.designPreviewB {
+  composes: designPreview;
+  background-color: var(--color-design-b);
+}
+
+.designPreviewC {
+  composes: designPreview;
+  background-color: var(--color-design-c);
+}
+
+.designPreviewIcon {
+  width: 32px;
+  height: 32px;
+  color: var(--color-white);
+}
+
+.designName {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-align: center;
+}
+
+.designDescription {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-600);
+  text-align: center;
+}
+
+/* Seat Selection */
+.seatSelection {
+  margin-bottom: var(--spacing-6);
+}
+
+.seatRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-3);
+}
+
+.seatLabel {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  width: 128px;
+  flex-shrink: 0;
+}
+
+.seatSelect {
+  flex: 1;
+  max-width: 280px;
+  border: 1px solid var(--color-gray-300);
+  padding: var(--spacing-2) var(--spacing-3);
+  background-color: var(--color-white);
+  font-size: var(--font-size-sm);
+}
+
+.seatPreviewChip {
+  width: 40px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+}
+
+.seatPreviewChipNone {
+  composes: seatPreviewChip;
+  background-color: var(--color-gray-300);
+}
+
+.seatPreviewChipA {
+  composes: seatPreviewChip;
+  background-color: var(--color-design-a);
+}
+
+.seatPreviewChipB {
+  composes: seatPreviewChip;
+  background-color: var(--color-design-b);
+}
+
+.seatPreviewChipC {
+  composes: seatPreviewChip;
+  background-color: var(--color-design-c);
+}
+
+.seatPreviewIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.seatPreviewIconLight {
+  composes: seatPreviewIcon;
+  color: var(--color-white);
+}
+
+.seatPreviewIconDark {
+  composes: seatPreviewIcon;
+  color: var(--color-gray-500);
+}
+
+/* Special Message */
+.specialMessage {
+  margin-bottom: var(--spacing-6);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  cursor: pointer;
+  margin-bottom: var(--spacing-2);
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+}
+
+.checkboxText {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.messageInput {
+  width: 100%;
+  border: 1px solid var(--color-gray-300);
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+}
+
+.messageHelper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--spacing-1);
+}
+
+.helperText {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-600);
+}
+
+/* Price Summary */
+.priceSummary {
+  background-color: var(--color-gray-50);
+  padding: var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+  border-radius: var(--radius-md);
+}
+
+.priceText {
+  font-size: var(--font-size-sm);
+}
+
+.priceTextBold {
+  font-weight: 700;
+}
+
+.priceTextMuted {
+  color: var(--color-gray-600);
+}
+
+/* Order Summary (Step 2) */
+.orderSummary {
+  margin-bottom: var(--spacing-6);
+}
+
+.orderThumbnails {
+  display: flex;
+  gap: var(--spacing-2);
+  justify-content: center;
+  margin-bottom: var(--spacing-3);
+}
+
+.orderThumbnail {
+  width: 64px;
+}
+
+.orderThumbnailPreview {
+  height: 80px;
+  margin-bottom: var(--spacing-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+
+.orderThumbnailLabel {
+  font-size: var(--font-size-xs);
+  text-align: center;
+  color: var(--color-gray-600);
+}
+
+.orderSummaryBox {
+  background-color: var(--color-gray-50);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.orderSummaryText {
+  font-size: var(--font-size-sm);
+}
+
+/* Shipping Section */
+.shippingSection {
+  margin-bottom: var(--spacing-6);
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.radioLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  cursor: pointer;
+}
+
+.radioInput {
+  margin-top: 4px;
+  accent-color: var(--color-primary);
+}
+
+.radioContent {
+  flex: 1;
+}
+
+.radioText {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-2);
+}
+
+.addressBox {
+  background-color: var(--color-gray-50);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-gray-200);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-2);
+}
+
+.addressName {
+  font-weight: 700;
+}
+
+.addressForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-3);
+}
+
+.addressInput {
+  width: 100%;
+  border: 1px solid var(--color-gray-300);
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+}
+
+.addressRow {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+.addressCity {
+  flex: 1;
+}
+
+.addressState {
+  width: 96px;
+}
+
+.addressZip {
+  width: 112px;
+}
+
+/* Policy Text */
+.policyText {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-600);
+  margin-bottom: var(--spacing-6);
+}
+
+/* Success State */
+.successBanner {
+  background-color: var(--color-success-light);
+  border: 1px solid var(--color-success-border);
+  padding: var(--spacing-2) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  display: inline-block;
+}
+
+.successText {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: #166534;
+}
+
+.successSummary {
+  margin-bottom: var(--spacing-4);
+}
+
+.successLine {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-1);
+}
+
+/* Loading Overlay */
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-gray-300);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

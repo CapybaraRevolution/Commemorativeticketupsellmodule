@@ -1,0 +1,142 @@
+/**
+ * DetailsModal CSS Module
+ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.modal {
+  position: relative;
+  background-color: var(--color-white);
+  width: 100%;
+  max-width: 672px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  background-color: var(--color-white);
+  border-bottom: 2px solid var(--color-black);
+  padding: var(--spacing-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.closeButton {
+  color: var(--color-black);
+  flex-shrink: 0;
+  margin-left: var(--spacing-4);
+  padding: var(--spacing-1);
+  transition: color var(--transition-fast);
+}
+
+.closeButton:hover {
+  color: var(--color-primary);
+}
+
+.closeIcon {
+  width: 24px;
+  height: 24px;
+}
+
+.content {
+  padding: var(--spacing-6);
+}
+
+.section {
+  margin-bottom: var(--spacing-6);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--spacing-2);
+}
+
+.sectionText {
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.sectionTextSecondary {
+  composes: sectionText;
+  margin-top: var(--spacing-2);
+  color: var(--color-gray-600);
+}
+
+.sectionTextBold {
+  composes: sectionText;
+  font-weight: 700;
+}
+
+.importantBox {
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  padding: var(--spacing-3);
+  margin-bottom: var(--spacing-6);
+  border-radius: var(--radius-md);
+}
+
+.importantText {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: #92400e;
+}
+
+.link {
+  text-decoration: underline;
+  transition: color var(--transition-fast);
+}
+
+.link:hover {
+  color: var(--color-primary);
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--color-white);
+  border-top: 2px solid var(--color-black);
+  padding: var(--spacing-6);
+}
+
+.footerButton {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  padding: var(--spacing-3) var(--spacing-8);
+  font-weight: 700;
+  text-transform: uppercase;
+  transition: background-color var(--transition-fast);
+}
+
+.footerButton:hover {
+  background-color: var(--color-primary-dark);
+}
