@@ -1,15 +1,26 @@
 'use client';
 
 /**
- * Cart Page
- * 
- * Demo page showing a fake cart with the CommemorativeTicketModule
+ * Cart Page (DEMO ONLY)
+ *
+ * This page is scaffolding. It exists to give the CommemorativeTicketModule
+ * a realistic-looking home so you can see how it behaves inside a checkout flow.
+ *
+ * If you're integrating the module into a real site, ignore this file entirely.
+ * The module doesn't care what page it lives on — it just needs seats, an
+ * address, and a session key passed as props.
+ *
+ * The logo says "VENUE." because this is a generic demo that could represent
+ * any performing arts organization. Kyle didn't want anyone squinting at the
+ * screen during a client meeting and going "wait, is this a different org's
+ * website?" It's nobody's website. It's a prototype. — Tabs
  */
 
 import { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { CommemorativeTicketModule } from '@/components/CommemorativeTicketModule';
 import { DetailsModal } from '@/components/DetailsModal';
+import { DEMO_CART } from '@/lib/config/orgConfig';
 import type { Seat, Address, GetCartResponse } from '@/types';
 import styles from './page.module.css';
 
@@ -27,8 +38,8 @@ export default function CartPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [commemorativeItem, setCommemorativeItem] = useState<CommemorativeItem | null>(null);
-  
-  // Data from API
+
+  // Data from API (or fallback)
   const [seats, setSeats] = useState<Seat[]>([]);
   const [addressOnFile, setAddressOnFile] = useState<Address | null>(null);
   const [sessionKey, setSessionKey] = useState('');
@@ -37,7 +48,10 @@ export default function CartPage() {
   const [venue, setVenue] = useState('');
   const [ticketTotal, setTicketTotal] = useState(0);
 
-  // Fetch cart data on mount
+  // Fetch cart data on mount.
+  // In the real world, this comes from Tessitura via the API route.
+  // If that fails (or we're just running the demo locally), fall back
+  // to the generic demo data from orgConfig.
   useEffect(() => {
     async function fetchCart() {
       try {
@@ -52,27 +66,14 @@ export default function CartPage() {
         setVenue(data.cart.venue);
         setTicketTotal(data.cart.ticketTotal);
       } catch (error) {
-        console.error('Failed to fetch cart:', error);
-        // Use fallback data for demo
-        setSeats([
-          { section: 'Orchestra', row: 'B', seatNumber: '13', price: 99 },
-          { section: 'Orchestra', row: 'B', seatNumber: '14', price: 99 },
-          { section: 'Orchestra', row: 'B', seatNumber: '15', price: 99 },
-        ]);
-        setAddressOnFile({
-          name: 'Kyle Lastname',
-          street1: '123 Main St',
-          street2: 'Apt 4B',
-          city: 'New York',
-          state: 'NY',
-          postalCode: '10001',
-          country: 'US',
-        });
+        console.error('Failed to fetch cart, using demo fallback:', error);
+        setSeats(DEMO_CART.seats.map(s => ({ ...s })));
+        setAddressOnFile({ ...DEMO_CART.address });
         setSessionKey('demo-session-12345');
-        setEventName('ULYSSES');
-        setPerformanceDate('Friday, January 23 | 7:30 PM');
-        setVenue('Martinson Hall');
-        setTicketTotal(297);
+        setEventName(DEMO_CART.eventName);
+        setPerformanceDate(DEMO_CART.performanceDate);
+        setVenue(DEMO_CART.venue);
+        setTicketTotal(DEMO_CART.ticketTotal);
       } finally {
         setIsLoading(false);
       }
@@ -81,7 +82,6 @@ export default function CartPage() {
     fetchCart();
   }, []);
 
-  // Handle commemorative ticket added
   const handleAddToOrder = (result: {
     success: boolean;
     quantity: number;
@@ -98,12 +98,11 @@ export default function CartPage() {
     }
   };
 
-  // Handle remove commemorative tickets
   const handleRemove = () => {
     setCommemorativeItem(null);
   };
 
-  // Calculate totals
+  // Cart math (the demo scaffolding, not the module's concern)
   const serviceFee = 10;
   const commemorativePrice = commemorativeItem?.price || 0;
   const total = ticketTotal + serviceFee + commemorativePrice;
@@ -120,20 +119,20 @@ export default function CartPage() {
 
   return (
     <div className={styles.page}>
-      {/* Timer Banner */}
+      {/* Timer banner — demo chrome, the module doesn't know about this */}
       <div className={styles.timerBanner}>
         <div className={styles.timerContent}>
           <AlertCircle className={styles.timerIcon} />
           <span className={styles.timerText}>
-            ⏱ 19:26 remaining until your tickets expire.
+            19:26 remaining until your tickets expire.
           </span>
         </div>
       </div>
 
-      {/* Header */}
+      {/* Header — generic "VENUE." placeholder logo */}
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <div className={styles.logo}>PUBLIC.</div>
+          <div className={styles.logo}>VENUE.</div>
           <nav className={styles.steps}>
             <span className={styles.stepInactive}>1. Choose Your Seats</span>
             <span className={styles.stepActive}>2. Your Cart</span>
@@ -149,7 +148,7 @@ export default function CartPage() {
         <div className={styles.mainInner}>
           <h2 className={styles.pageTitle}>YOUR CART</h2>
 
-          {/* Ticket Line Item */}
+          {/* Ticket line item — static demo scaffolding */}
           <div className={styles.ticketSection}>
             <div className={styles.ticketHeader}>
               <div className={styles.ticketInfo}>
@@ -160,7 +159,6 @@ export default function CartPage() {
                   {performanceDate.split(' | ')[1]}
                 </p>
                 <p className={styles.eventVenue}>{venue}</p>
-
                 <div className={styles.seatList}>
                   {seats.map((seat, idx) => (
                     <p key={idx} className={styles.seatLine}>
@@ -182,7 +180,10 @@ export default function CartPage() {
             </div>
           </div>
 
-          {/* Commemorative Ticket Upsell */}
+          {/* ============================================================
+              THE MODULE — this is the only real thing on this page.
+              Everything above and below is just context for the demo.
+              ============================================================ */}
           <div className={styles.upsellSection}>
             <CommemorativeTicketModule
               seats={seats}
@@ -194,7 +195,7 @@ export default function CartPage() {
             />
           </div>
 
-          {/* Cart Summary */}
+          {/* Cart summary — demo scaffolding */}
           <div className={styles.cartSummary}>
             <div className={styles.summaryLine}>
               <span className={styles.summaryLabel}>Ticket Service Fee:</span>
@@ -234,7 +235,7 @@ export default function CartPage() {
         </div>
       </main>
 
-      {/* Bottom Bar */}
+      {/* Bottom bar — demo chrome */}
       <div className={styles.bottomBar}>
         <div className={styles.bottomBarInner}>
           <div className={styles.bottomTotal}>
@@ -244,13 +245,13 @@ export default function CartPage() {
             <button className={styles.continueButton}>Continue Shopping</button>
             <button className={styles.checkoutButton}>
               CHECKOUT
-              <span className={styles.checkoutArrow}>→</span>
+              <span className={styles.checkoutArrow}>&rarr;</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Details Modal */}
+      {/* Details Modal — part of the module, not the demo */}
       <DetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );

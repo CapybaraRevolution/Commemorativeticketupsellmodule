@@ -1,11 +1,17 @@
 /**
  * WWL (World Wide Logistics) Payload Builder
- * 
- * Builds the payload structure required to submit commemorative ticket
- * fulfillment orders to WWL after checkout completes in Tessitura.
- * 
- * IMPORTANT: WWL orders should only be sent AFTER payment is confirmed
- * in Tessitura, not at the "add to order" step.
+ *
+ * Builds the payload for submitting commemorative ticket fulfillment orders to WWL.
+ *
+ * TIMING MATTERS: This should only be used AFTER payment is confirmed in Tessitura.
+ * Not at "add to order" time. Not at "click checkout" time. After. Payment. Confirmed.
+ * Kyle made me put this in three places. He's right to be paranoid — you don't want
+ * to kick off a print run for an order that might not get paid for. — Tabs
+ *
+ * The payload builder takes our internal types and maps them to whatever shape
+ * WWL expects. The actual variant codes (SEASON-2025, CLASSIC, etc.) are
+ * placeholders that live in orgConfig — they depend on the specific product
+ * setup between the org and WWL.
  */
 
 import type {
@@ -13,16 +19,16 @@ import type {
   SeatDesignSelection,
   WWLOrderPayload,
   WWLOrderItem,
-  WWL_COMMEMORATIVE_SKU,
 } from '@/types';
+import { ORG_CONFIG } from '@/lib/config/orgConfig';
 
 /**
- * Input data needed to build a WWL order
+ * Input data needed to build a WWL order.
  */
 export interface WWLOrderInput {
   /** Tessitura order ID (obtained after checkout completes) */
   tessituraOrderId: string;
-  /** Customer information */
+  /** Customer info */
   customer: {
     constituentId: number;
     email: string;
@@ -43,10 +49,10 @@ export interface WWLOrderInput {
 }
 
 /**
- * Build the WWL order payload from our internal data structures
- * 
- * @param input - The order input data
- * @returns The formatted WWL payload ready for submission
+ * Build the WWL order payload from our internal data.
+ *
+ * This is a pure function — takes data in, returns a payload out.
+ * No side effects, no API calls. Just data transformation.
  */
 export function buildWWLPayload(input: WWLOrderInput): WWLOrderPayload {
   const {
@@ -58,13 +64,12 @@ export function buildWWLPayload(input: WWLOrderInput): WWLOrderPayload {
     eventDetails,
   } = input;
 
-  // Filter to only selected seats (those with a design chosen)
+  // Only include seats where a design was actually selected
   const selectedItems = selections.filter(s => s.designId !== null);
 
-  // Build line items
   const items: WWLOrderItem[] = selectedItems.map(selection => ({
-    // TODO: Jason - Verify the correct WWL product SKU
-    productId: 'COMM-TICKET-2025', // WWL_COMMEMORATIVE_SKU from types
+    // SKU comes from orgConfig — each org/product has its own.
+    productId: ORG_CONFIG.wwlSku,
     section: selection.seat.section,
     row: selection.seat.row,
     seat: selection.seat.seatNumber,
@@ -90,92 +95,61 @@ export function buildWWLPayload(input: WWLOrderInput): WWLOrderPayload {
 }
 
 /**
- * Map our internal design IDs to WWL's variant codes
- * 
- * TODO: Jason - Confirm the actual WWL variant codes with WWL
+ * Map internal design IDs → WWL variant codes.
+ *
+ * The mapping lives in orgConfig because it's org/product-specific.
+ * "design-a" is our internal label; "SEASON-2025" (or whatever) is
+ * what WWL calls it on their end. Nobody asked me if this naming
+ * convention is ideal. I just work here. — Tabs
  */
 function mapDesignIdToWWLVariant(designId: string): string {
-  const variantMap: Record<string, string> = {
-    'design-a': 'SEASON-2025',    // Season design variant
-    'design-b': 'CLASSIC',        // Classic design variant
-    'design-c': 'LIMITED-ED',     // Limited edition variant
-  };
-
-  return variantMap[designId] || 'UNKNOWN';
+  return ORG_CONFIG.wwlVariantMap[designId] || 'UNKNOWN';
 }
 
 /**
- * Validate the WWL payload before submission
- * 
- * @param payload - The WWL payload to validate
- * @returns Array of validation error messages (empty if valid)
+ * Validate the WWL payload before submission.
+ * Returns an array of error messages (empty = valid).
  */
 export function validateWWLPayload(payload: WWLOrderPayload): string[] {
   const errors: string[] = [];
 
-  // Required fields
-  if (!payload.orderId) {
-    errors.push('Order ID is required');
-  }
+  if (!payload.orderId) errors.push('Order ID is required');
+  if (!payload.customer.email) errors.push('Customer email is required');
+  if (!payload.customer.name) errors.push('Customer name is required');
 
-  if (!payload.customer.email) {
-    errors.push('Customer email is required');
-  }
+  if (!payload.shipToAddress.street1) errors.push('Shipping address line 1 is required');
+  if (!payload.shipToAddress.city) errors.push('Shipping city is required');
+  if (!payload.shipToAddress.state) errors.push('Shipping state is required');
+  if (!payload.shipToAddress.postalCode) errors.push('Shipping postal code is required');
 
-  if (!payload.customer.name) {
-    errors.push('Customer name is required');
-  }
-
-  // Shipping address validation
-  if (!payload.shipToAddress.street1) {
-    errors.push('Shipping address line 1 is required');
-  }
-  if (!payload.shipToAddress.city) {
-    errors.push('Shipping city is required');
-  }
-  if (!payload.shipToAddress.state) {
-    errors.push('Shipping state is required');
-  }
-  if (!payload.shipToAddress.postalCode) {
-    errors.push('Shipping postal code is required');
-  }
-
-  // Must have at least one item
   if (!payload.items || payload.items.length === 0) {
     errors.push('At least one item is required');
   }
 
-  // Validate each item
   payload.items.forEach((item, index) => {
-    if (!item.productId) {
-      errors.push(`Item ${index + 1}: Product ID is required`);
-    }
-    if (!item.designVariant) {
-      errors.push(`Item ${index + 1}: Design variant is required`);
-    }
+    if (!item.productId) errors.push(`Item ${index + 1}: Product ID is required`);
+    if (!item.designVariant) errors.push(`Item ${index + 1}: Design variant is required`);
   });
 
   return errors;
 }
 
 /**
- * Format the special message for WWL
- * Ensures it meets WWL's requirements (character limits, etc.)
- * 
- * @param message - The raw special message
- * @returns Formatted message ready for WWL
+ * Format the special message for WWL.
+ * Enforces character limits and strips characters that might cause
+ * problems with WWL's printing system.
+ *
+ * INTEGRATION NOTE: We don't actually know which characters WWL supports.
+ * The regex below is conservative. Adjust once someone confirms the spec.
  */
 export function formatSpecialMessage(message: string): string {
-  // Trim whitespace
   let formatted = message.trim();
 
-  // Enforce maximum length (80 characters)
   if (formatted.length > 80) {
     formatted = formatted.substring(0, 80);
   }
 
-  // Remove any characters that might cause issues with WWL's printing
-  // TODO: Jason - Confirm which characters WWL supports
+  // Conservative character filter — letters, numbers, basic punctuation.
   formatted = formatted.replace(/[^\w\s.,!?'-]/g, '');
 
   return formatted;

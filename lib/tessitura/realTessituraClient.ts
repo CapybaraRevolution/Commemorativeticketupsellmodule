@@ -1,11 +1,20 @@
 /**
  * Real Tessitura Client
- * 
+ *
  * INTEGRATION NOTE: Placeholder implementation intended to be adapted to existing integration patterns.
- * 
- * This file contains scaffold implementations with isolated mapping functions.
- * Response shapes vary by Tessitura version; adjust mapCartResponse() and mapAddressResponse()
- * to match your actual API responses.
+ *
+ * This file is the scaffold. The fetch calls are real-ish (they'll actually
+ * try to hit endpoints), but the response mapping is based on guesses about
+ * Tessitura's REST API structure. Every org's Tessitura instance is a little
+ * different, so the mapping functions are isolated on purpose — swap the
+ * field names in mapCartResponse() and mapAddressResponse() and you're done.
+ *
+ * Kyle doesn't have access to any live Tessitura instance (he's a product
+ * person, not a sysadmin), so this is all based on API documentation and
+ * reasonable assumptions. If the field names are wrong, that's expected.
+ * The architecture is right; the details need local knowledge.
+ *
+ * — Tabs (the AI behind the curtain)
  */
 
 import type {
@@ -17,30 +26,28 @@ import type {
 } from '@/types';
 import type { TessituraClient, TessituraConfig } from './tessituraClient';
 
-/**
- * Production implementation of the Tessitura client
- */
 export class RealTessituraClient implements TessituraClient {
   private readonly config: TessituraConfig;
 
   constructor(config: TessituraConfig) {
     this.config = {
-      timeout: 30000, // Default 30 second timeout
+      timeout: 30000,
       ...config,
     };
   }
 
   /**
-   * Fetch the current cart from Tessitura
-   * 
+   * Fetch the current cart from Tessitura.
+   *
    * Intended endpoint: GET /Web/Cart/{sessionKey}
-   * 
+   *
    * INTEGRATION NOTE: Response structure varies by Tessitura version.
-   * Adjust mapCartResponse() below to match your actual response shape.
+   * The mapCartResponse() function below isolates all field mapping
+   * so you only need to adjust that one function.
    */
   async getCart(sessionKey: string): Promise<Cart> {
     const url = `${this.config.baseUrl}/Web/Cart/${sessionKey}`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: this.buildHeaders(),
@@ -51,18 +58,20 @@ export class RealTessituraClient implements TessituraClient {
     }
 
     const data = await response.json();
-    
-    // INTEGRATION NOTE: mapCartResponse() isolates field mapping; adapt to your response structure
+
+    // All the "where is the seat number in this response" logic lives
+    // in mapCartResponse. If Tessitura returns different field names,
+    // that's the only function you touch.
     return this.mapCartResponse(data, sessionKey);
   }
 
   /**
-   * Add a contribution (donation) to the cart
-   * 
+   * Add a contribution (donation) to the cart.
+   *
    * Intended endpoint: POST /Web/Cart/{sessionKey}/Contributions
-   * 
+   *
    * INTEGRATION NOTE: Request body format may vary by Tessitura version.
-   * The prototype uses FundId, Amount, AppealId (optional), Notes (optional).
+   * This uses FundId, Amount, AppealId (optional), Notes (optional).
    */
   async addContribution(
     sessionKey: string,
@@ -93,8 +102,9 @@ export class RealTessituraClient implements TessituraClient {
     }
 
     const data = await response.json();
-    
-    // INTEGRATION NOTE: Contribution ID field name may differ; adjust as needed
+
+    // INTEGRATION NOTE: The field that holds the contribution ID may
+    // be ContributionId, Id, or something else. Adjust as needed.
     return {
       success: true,
       contributionId: data.ContributionId || data.Id,
@@ -102,10 +112,10 @@ export class RealTessituraClient implements TessituraClient {
   }
 
   /**
-   * Get the primary address for a constituent
-   * 
+   * Get the primary address for a constituent.
+   *
    * Intended endpoint: GET /CRM/Addresses?constituentId={id}&primaryOnly=true
-   * 
+   *
    * INTEGRATION NOTE: Endpoint path varies by Tessitura version. Alternatives:
    * - GET /CRM/Constituents/{id}/Addresses?primaryOnly=true
    * - GET /TXN/Addresses/{constituentId}
@@ -124,21 +134,19 @@ export class RealTessituraClient implements TessituraClient {
     }
 
     const data = await response.json();
-    
-    // Handle case where no address exists
+
     if (!data || (Array.isArray(data) && data.length === 0)) {
       return null;
     }
 
-    // INTEGRATION NOTE: mapAddressResponse() isolates field mapping; adapt to your response structure
     return this.mapAddressResponse(Array.isArray(data) ? data[0] : data);
   }
 
   /**
-   * Build common headers for Tessitura API requests
-   * 
+   * Build common headers for Tessitura API requests.
+   *
    * INTEGRATION NOTE: Authentication approach varies (Basic Auth, API Key, OAuth, etc.)
-   * Adapt to match your existing Tessitura authentication pattern.
+   * Adapt to match the existing Tessitura auth pattern.
    */
   private buildHeaders(): HeadersInit {
     const headers: HeadersInit = {
@@ -154,12 +162,13 @@ export class RealTessituraClient implements TessituraClient {
   }
 
   /**
-   * Map Tessitura cart response to our Cart type
-   * 
-   * INTEGRATION NOTE: Field names below are examples; adjust to match your actual response structure.
+   * Map Tessitura cart response → our Cart type.
+   *
+   * INTEGRATION NOTE: Field names below are examples based on common Tessitura
+   * REST API patterns. Adjust to match the actual response from your instance.
+   * This function is the adapter layer — everything else can stay the same.
    */
   private mapCartResponse(data: unknown, sessionKey: string): Cart {
-    // Type assertion for the expected structure - adjust as needed
     const tessResponse = data as {
       Order?: {
         LineItems?: Array<{
@@ -172,9 +181,7 @@ export class RealTessituraClient implements TessituraClient {
           }>;
         }>;
       };
-      Constituent?: {
-        Id?: number;
-      };
+      Constituent?: { Id?: number };
       Performance?: {
         ProductionSeason?: string;
         PerformanceDate?: string;
@@ -183,8 +190,7 @@ export class RealTessituraClient implements TessituraClient {
     };
 
     const seats: Seat[] = [];
-    
-    // Extract seats from line items
+
     tessResponse.Order?.LineItems?.forEach(lineItem => {
       lineItem.SubLineItems?.forEach(subItem => {
         seats.push({
@@ -209,9 +215,10 @@ export class RealTessituraClient implements TessituraClient {
   }
 
   /**
-   * Map Tessitura address response to our Address type
-   * 
-   * INTEGRATION NOTE: Field names below are examples; adjust to match your actual response structure.
+   * Map Tessitura address response → our Address type.
+   *
+   * INTEGRATION NOTE: Same deal as above — field names are educated guesses.
+   * Adjust to match your actual Tessitura response.
    */
   private mapAddressResponse(data: unknown): Address {
     const tessAddress = data as {
@@ -230,7 +237,7 @@ export class RealTessituraClient implements TessituraClient {
     };
 
     return {
-      name: tessAddress.DisplayName || 
+      name: tessAddress.DisplayName ||
             `${tessAddress.FirstName || ''} ${tessAddress.LastName || ''}`.trim() ||
             'Unknown',
       street1: tessAddress.Street1 || '',

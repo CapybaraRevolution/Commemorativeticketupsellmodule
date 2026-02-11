@@ -1,10 +1,20 @@
 /**
  * Tessitura Client Interface
- * 
- * This interface defines the contract for interacting with Tessitura APIs.
- * Two implementations are provided:
- * - mockTessituraClient.ts: For local development with hardcoded data
- * - realTessituraClient.ts: For production with actual API calls
+ *
+ * This is the contract. Any implementation of TessituraClient — mock or real —
+ * must provide these three methods. That's it. The module doesn't care HOW
+ * you talk to Tessitura; it cares about the SHAPE of what comes back.
+ *
+ * Kyle's thinking: the front-end module should be blissfully ignorant of
+ * whether it's talking to a real Tessitura instance, a mock, or a hamster
+ * running on a wheel that happens to return JSON. As long as the data
+ * conforms to these types, the UI works.
+ *
+ * Two implementations exist:
+ * - mockTessituraClient.ts → hardcoded data for local dev (what you see in the demo)
+ * - realTessituraClient.ts → placeholder fetch calls for production (the integration scaffold)
+ *
+ * — Tabs (Kyle's AI. I write the code. He tells me what the code should do.)
  */
 
 import type {
@@ -15,30 +25,31 @@ import type {
 } from '@/types';
 
 /**
- * Interface for Tessitura API client operations needed for commemorative tickets
+ * Interface for Tessitura API operations needed by the commemorative ticket module.
+ *
+ * Three operations, deliberately scoped to what this module actually needs:
+ * 1. Get the cart (to know which seats need commemorative tickets)
+ * 2. Add a contribution (the donation line item)
+ * 3. Get the address (so we can show "ship to address on file")
+ *
+ * We're not trying to wrap all of Tessitura. Just the parts that matter here.
  */
 export interface TessituraClient {
   /**
    * Fetch the current cart/order for a session
-   * 
+   *
    * Tessitura Endpoint: GET /Web/Cart/{sessionKey}
-   * 
-   * @param sessionKey - The Tessitura session key (from cookie/auth)
-   * @returns Cart object with seats and session info
    */
   getCart(sessionKey: string): Promise<Cart>;
 
   /**
    * Add a contribution (donation) to the cart
-   * 
+   *
    * Tessitura Endpoint: POST /Web/Cart/{sessionKey}/Contributions
-   * 
-   * This is used to add the commemorative ticket as a donation line item.
-   * The actual physical fulfillment is handled separately via WWL after checkout.
-   * 
-   * @param sessionKey - The Tessitura session key
-   * @param contribution - Contribution details (fund, amount, notes)
-   * @returns Result with contribution ID or error
+   *
+   * This is how the commemorative ticket becomes a line item — it's modeled
+   * as a donation to a fund. The physical fulfillment (printing, shipping)
+   * happens separately via WWL after checkout.
    */
   addContribution(
     sessionKey: string,
@@ -47,17 +58,14 @@ export interface TessituraClient {
 
   /**
    * Get the primary address on file for a constituent
-   * 
+   *
    * Tessitura Endpoint: GET /CRM/Addresses?constituentId={id}&primaryOnly=true
-   * 
-   * @param constituentId - The constituent's Tessitura ID
-   * @returns Primary address or null if none on file
    */
   getPrimaryAddress(constituentId: number): Promise<Address | null>;
 }
 
 /**
- * Configuration for the Tessitura client
+ * Configuration for the real Tessitura client.
  */
 export interface TessituraConfig {
   /** Base URL for Tessitura API (e.g., https://tessitura.example.org/TessituraService) */
@@ -69,11 +77,13 @@ export interface TessituraConfig {
 }
 
 /**
- * Factory function to create the appropriate Tessitura client
- * based on environment
+ * Factory function — returns mock client in dev, real client in production.
+ *
+ * This is a lazy import pattern so the mock client doesn't get bundled
+ * into a production build and vice versa. Probably over-engineering it
+ * for a prototype, but Kyle said "do it right" and who am I to argue.
  */
 export async function createTessituraClient(): Promise<TessituraClient> {
-  // In production, use the real client; in development, use mock
   if (process.env.NODE_ENV === 'production' && process.env.TESSITURA_BASE_URL) {
     const { RealTessituraClient } = await import('./realTessituraClient');
     return new RealTessituraClient({
@@ -82,7 +92,6 @@ export async function createTessituraClient(): Promise<TessituraClient> {
     });
   }
 
-  // Default to mock client for development
   const { MockTessituraClient } = await import('./mockTessituraClient');
   return new MockTessituraClient();
 }

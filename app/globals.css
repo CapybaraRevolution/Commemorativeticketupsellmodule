@@ -15,9 +15,10 @@
 
 /* CSS Custom Properties (Design Tokens) */
 :root {
-  /* Brand Colors */
-  --color-primary: #DC143C;
-  --color-primary-dark: #B8102F;
+  /* Primary Colors — neutral steel-blue so the demo doesn't scream any one org.
+     Swap these to rebrand for a specific client (see docs/REFERENCE_PUBLIC_THEATER.md). */
+  --color-primary: #3D5A80;
+  --color-primary-dark: #2B4162;
   --color-success: #16a34a;
   --color-success-light: #dcfce7;
   --color-success-border: #16a34a;

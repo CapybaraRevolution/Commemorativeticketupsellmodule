@@ -1,9 +1,16 @@
 /**
  * Mock Tessitura Client
- * 
- * Provides hardcoded mock data for local development and testing.
- * This allows the commemorative ticket module to be developed and tested
- * without requiring a connection to a real Tessitura instance.
+ *
+ * Fake Tessitura that lives on localhost. Returns hardcoded data so the
+ * module can run without a real Tessitura instance in sight.
+ *
+ * The mock data is deliberately generic — "THE NUTCRACKER" at "Main Stage"
+ * could be any performing arts org. This used to say "ULYSSES" at
+ * "Martinson Hall" but Kyle wanted the demo de-branded.
+ *
+ * If you're a dev looking at this and wondering why the data is so
+ * simple — it's on purpose. This isn't a test fixture; it's a prototype
+ * that just needs enough data to make the UI look real. — Tabs
  */
 
 import type {
@@ -12,17 +19,16 @@ import type {
   TessituraContributionRequest,
   TessituraContributionResult,
 } from '@/types';
+import { DEMO_CART } from '@/lib/config/orgConfig';
 import type { TessituraClient } from './tessituraClient';
 
-/**
- * Mock implementation of the Tessitura client
- */
 export class MockTessituraClient implements TessituraClient {
   /**
-   * Returns a mock cart with 3 seats for demo purposes
+   * Returns a mock cart with 3 seats.
+   * The data comes from DEMO_CART in orgConfig so it stays in sync
+   * with the fallback data on the cart page.
    */
   async getCart(sessionKey: string): Promise<Cart> {
-    // Simulate network delay
     await this.delay(200);
 
     console.log(`[MockTessitura] getCart called with sessionKey: ${sessionKey}`);
@@ -30,52 +36,31 @@ export class MockTessituraClient implements TessituraClient {
     return {
       sessionKey,
       constituentId: 12345,
-      eventName: 'ULYSSES',
-      performanceDate: 'Friday, January 23 | 7:30 PM',
-      venue: 'Martinson Hall',
-      seats: [
-        {
-          section: 'Orchestra',
-          row: 'B',
-          seatNumber: '13',
-          price: 99,
-          seatId: 100001,
-        },
-        {
-          section: 'Orchestra',
-          row: 'B',
-          seatNumber: '14',
-          price: 99,
-          seatId: 100002,
-        },
-        {
-          section: 'Orchestra',
-          row: 'B',
-          seatNumber: '15',
-          price: 99,
-          seatId: 100003,
-        },
-      ],
-      ticketTotal: 297,
+      eventName: DEMO_CART.eventName,
+      performanceDate: DEMO_CART.performanceDate,
+      venue: DEMO_CART.venue,
+      seats: DEMO_CART.seats.map((s, i) => ({
+        ...s,
+        seatId: 100001 + i,
+      })),
+      ticketTotal: DEMO_CART.ticketTotal,
     };
   }
 
   /**
-   * Simulates adding a contribution to the cart
+   * Pretends to add a contribution. Always succeeds because optimism.
    */
   async addContribution(
     sessionKey: string,
     contribution: TessituraContributionRequest
   ): Promise<TessituraContributionResult> {
-    // Simulate network delay
-    await this.delay(500);
+    await this.delay(500); // Realistic-ish latency
 
     console.log(`[MockTessitura] addContribution called:`, {
       sessionKey,
       contribution,
     });
 
-    // Simulate successful contribution
     return {
       success: true,
       contributionId: Math.floor(Math.random() * 100000) + 200000,
@@ -83,29 +68,18 @@ export class MockTessituraClient implements TessituraClient {
   }
 
   /**
-   * Returns a mock primary address
+   * Returns a mock address. Generic name + Chicago address because
+   * Kyle didn't want "New York" baked in everywhere either.
    */
   async getPrimaryAddress(constituentId: number): Promise<Address | null> {
-    // Simulate network delay
     await this.delay(150);
 
     console.log(`[MockTessitura] getPrimaryAddress called for constituent: ${constituentId}`);
 
-    // Return mock address
-    return {
-      name: 'Kyle Lastname',
-      street1: '123 Main St',
-      street2: 'Apt 4B',
-      city: 'New York',
-      state: 'NY',
-      postalCode: '10001',
-      country: 'US',
-    };
+    return { ...DEMO_CART.address };
   }
 
-  /**
-   * Helper to simulate network delay
-   */
+  /** Simulates network latency so the loading states actually render. */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }

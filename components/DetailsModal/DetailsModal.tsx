@@ -2,12 +2,25 @@
 
 /**
  * DetailsModal
- * 
- * Modal displaying details and policies for commemorative tickets
+ *
+ * The "Details & policies" modal. This is the fine print that covers:
+ * - This is a keepsake, NOT a ticket for entry (critical callout)
+ * - What you get (a pretty printed thing in the mail)
+ * - It's a donation (non-refundable)
+ * - Shipping details
+ * - WWL is the fulfillment partner
+ *
+ * All org-specific copy pulls from orgConfig so this stays generic.
+ *
+ * Kyle was insistent about the "not valid for admission" warning being
+ * prominent. Fair concern — you don't want someone showing up to the
+ * theater waving a commemorative ticket at the usher. Hence the yellow
+ * box at the top. — Tabs
  */
 
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { ORG_CONFIG } from '@/lib/config/orgConfig';
 import styles from './DetailsModal.module.css';
 
 interface DetailsModalProps {
@@ -18,7 +31,7 @@ interface DetailsModalProps {
 export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Handle ESC key
+  // ESC key closes the modal — basic accessibility pattern
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -30,7 +43,7 @@ export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Focus trap
+  // Focus trap — when modal opens, focus the first interactive element
   useEffect(() => {
     if (isOpen && modalRef.current) {
       const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
@@ -42,7 +55,7 @@ export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
     }
   }, [isOpen]);
 
-  // Prevent body scroll when modal is open
+  // Lock body scroll while modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -56,12 +69,12 @@ export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
 
   if (!isOpen) return null;
 
+  const { orgName, seasonLabel, supportEmail } = ORG_CONFIG;
+
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      {/* Backdrop */}
       <div className={styles.backdrop} onClick={onClose} aria-hidden="true" />
 
-      {/* Modal */}
       <div className={styles.modal} ref={modalRef}>
         {/* Header */}
         <div className={styles.header}>
@@ -79,7 +92,7 @@ export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
 
         {/* Content */}
         <div className={styles.content}>
-          {/* Important Notice */}
+          {/* The big yellow box. Kyle wanted this impossible to miss. */}
           <div className={styles.importantBox}>
             <p className={styles.importantText}>
               IMPORTANT: This commemorative ticket is a keepsake and is not valid for admission.
@@ -90,18 +103,18 @@ export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
           <section className={styles.section}>
             <h3 className={styles.sectionTitle}>What You Get</h3>
             <p className={styles.sectionText}>
-              A physical commemorative ticket for the 2025–26 Public Theater season, featuring
-              exclusive artwork celebrating our productions. This beautiful keepsake will be
+              A physical commemorative ticket for the {seasonLabel}, featuring
+              exclusive artwork celebrating the season. This beautiful keepsake will be
               professionally printed and mailed to your specified address.
             </p>
           </section>
 
           <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Supporting The Public</h3>
+            <h3 className={styles.sectionTitle}>Supporting {orgName}</h3>
             <p className={styles.sectionText}>
-              Your commemorative ticket purchase includes a donation to support Public Theater.
-              As a nonprofit organization, your contribution helps us continue producing
-              world-class theater and serving our community.
+              Your commemorative ticket purchase includes a donation to support {orgName}.
+              As a nonprofit organization, your contribution helps continue producing
+              world-class programming and serving the community.
             </p>
           </section>
 
@@ -109,7 +122,7 @@ export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
             <h3 className={styles.sectionTitle}>Refund Policy</h3>
             <p className={styles.sectionText}>
               Commemorative tickets are non-refundable as they constitute a charitable donation
-              to Public Theater. All sales are final once your order is processed.
+              to {orgName}. All sales are final once your order is processed.
             </p>
             <p className={styles.sectionTextSecondary}>
               Commemorative tickets are souvenirs only and are not valid for admission.
@@ -138,8 +151,8 @@ export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
             <p className={styles.sectionText}>
               Commemorative tickets are fulfilled by WWL (World Wide Logistics). For questions
               about your order or shipping status, please contact our support team at{' '}
-              <a href="mailto:support@publictheater.org" className={styles.link}>
-                support@publictheater.org
+              <a href={`mailto:${supportEmail}`} className={styles.link}>
+                {supportEmail}
               </a>
               .
             </p>
@@ -148,7 +161,7 @@ export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
           <section className={styles.section}>
             <h3 className={styles.sectionTitle}>Design Selection</h3>
             <p className={styles.sectionText}>
-              Choose from three exclusive designs celebrating the 2025–26 season. Each design
+              Choose from exclusive designs celebrating the {seasonLabel}. Each design
               features original artwork commissioned specifically for this commemorative series.
               Limited edition designs may sell out and become unavailable.
             </p>

@@ -2,18 +2,28 @@
 
 /**
  * CommemorativeTicketModule
- * 
- * A reusable React component that renders the commemorative ticket upsell flow.
- * Features:
- * - Collapsed state (default)
- * - Expanded Step 1: Choose designs
- * - Expanded Step 2: Shipping
- * - Success state
+ *
+ * The red box. The whole point of this repo. Everything else is scaffolding.
+ *
+ * This is a self-contained upsell module that sits inside a cart/checkout flow
+ * and lets users add commemorative tickets to their order. It handles four
+ * states — collapsed, step 1 (choose designs), step 2 (shipping), and a
+ * success confirmation — all managed by a single reducer.
+ *
+ * Kyle's design instinct: two-step progressive disclosure. Don't overwhelm
+ * the user with forms up front; let them pick designs first (the fun part),
+ * then handle shipping (the boring part). I (Tabs, Kyle's AI scaffolding
+ * assistant) translated that into the state machine below.
+ *
+ * The module reads all org-specific copy from lib/config/orgConfig.ts so
+ * you can demo this for Houston Ballet on Tuesday and the Met Museum on
+ * Wednesday without touching component code.
  */
 
 import { useState, useCallback, useReducer } from 'react';
 import { ChevronDown, ChevronUp, Image as ImageIcon, Check } from 'lucide-react';
-import type { Seat, Address, Design, ModuleState, AVAILABLE_DESIGNS } from '@/types';
+import type { Seat, Address, Design, ModuleState } from '@/types';
+import { ORG_CONFIG, DESIGN_OPTIONS } from '@/lib/config/orgConfig';
 import styles from './CommemorativeTicketModule.module.css';
 
 // ============================================================================
@@ -47,17 +57,22 @@ interface AddToOrderResult {
   specialMessage?: string;
 }
 
-// Design options
-const DESIGNS: Design[] = [
-  { id: 'design-a', name: 'Design A', description: 'Season design', available: true },
-  { id: 'design-b', name: 'Design B', description: 'Classic', available: true },
-  { id: 'design-c', name: 'Design C', description: 'Limited edition', available: true },
-];
-
-const PRICE_PER_TICKET = 20;
+// Pull designs and price from the central config.
+// If the org wants 4 designs or a $25 price point, they change it there, not here.
+const DESIGNS: Design[] = [...DESIGN_OPTIONS];
+const PRICE_PER_TICKET = ORG_CONFIG.ticketPrice;
 
 // ============================================================================
 // State Reducer
+//
+// Kyle asked "why not just useState for everything?" Fair question.
+// With 8+ pieces of interdependent state (selections, message, shipping,
+// loading, error, current step...), individual useState calls turn into
+// spaghetti fast. A reducer keeps the transitions explicit and debuggable.
+// It's also easier for another dev to read the action types and understand
+// every possible state change without hunting through event handlers.
+//
+// — Tabs (Kyle's AI, doing Kyle's bidding)
 // ============================================================================
 
 interface ModuleStateData {
@@ -100,10 +115,14 @@ function createInitialState(seats: Seat[]): ModuleStateData {
   });
 
   return {
+    // Collapsed by default — the module shouldn't demand attention until
+    // the user is ready. It sits in the cart as an invitation, not a blocker.
     currentState: 'collapsed',
     seatSelections,
     includeSpecialMessage: false,
     specialMessage: '',
+    // Default to address on file because most people just want to ship
+    // to wherever Tessitura already has. Less friction = more conversions.
     shippingOption: 'address-on-file',
     customAddress: {
       name: '',
@@ -184,7 +203,10 @@ export default function CommemorativeTicketModule({
   const totalPrice = selectedSeats.length * PRICE_PER_TICKET;
   const canContinue = selectedSeats.length > 0;
 
-  // Handlers
+  // -- Handlers --
+  // (These are all wrapped in useCallback so they don't cause unnecessary
+  // re-renders if the parent is doing anything with refs or memoization.)
+
   const handleToggle = useCallback(() => {
     if (state.currentState === 'collapsed') {
       dispatch({ type: 'EXPAND' });
@@ -209,7 +231,9 @@ export default function CommemorativeTicketModule({
     dispatch({ type: 'SET_LOADING', isLoading: true });
     dispatch({ type: 'SET_ERROR', error: null });
 
-    // Build shipping address
+    // Build shipping address — either the one on file or whatever the user typed in.
+    // Note the wording is "Use a different address" not "Edit address" — per Jason's
+    // guidance, this doesn't actually modify the Tessitura record.
     const shippingAddress: Address =
       state.shippingOption === 'address-on-file' && addressOnFile
         ? addressOnFile
@@ -253,7 +277,7 @@ export default function CommemorativeTicketModule({
 
       dispatch({ type: 'SET_SUCCESS' });
 
-      // Notify parent
+      // Notify parent so the cart page can show the line item
       if (onAddToOrder) {
         onAddToOrder({
           success: true,
@@ -298,35 +322,37 @@ export default function CommemorativeTicketModule({
     dispatch({ type: 'RESET' });
   }, [onRemove]);
 
-  // Get design preview class
+  // -- Design color helpers --
+  // Maps design IDs to CSS module classes for the colored preview chips.
   const getDesignClass = (designId: string | null) => {
     switch (designId) {
-      case 'design-a':
-        return styles.designPreviewA;
-      case 'design-b':
-        return styles.designPreviewB;
-      case 'design-c':
-        return styles.designPreviewC;
-      default:
-        return styles.designPreview;
+      case 'design-a': return styles.designPreviewA;
+      case 'design-b': return styles.designPreviewB;
+      case 'design-c': return styles.designPreviewC;
+      default:         return styles.designPreview;
     }
   };
 
   const getSeatPreviewClass = (designId: string) => {
     switch (designId) {
-      case 'design-a':
-        return styles.seatPreviewChipA;
-      case 'design-b':
-        return styles.seatPreviewChipB;
-      case 'design-c':
-        return styles.seatPreviewChipC;
-      default:
-        return styles.seatPreviewChipNone;
+      case 'design-a': return styles.seatPreviewChipA;
+      case 'design-b': return styles.seatPreviewChipB;
+      case 'design-c': return styles.seatPreviewChipC;
+      default:         return styles.seatPreviewChipNone;
     }
   };
 
+  // All org-specific strings come from config. If you see a hardcoded
+  // "Public Theater" anywhere below, that's a bug — let us know.
+  const title = ORG_CONFIG.moduleTitle.toUpperCase();
+
   // ============================================================================
   // Render: Collapsed State
+  //
+  // This is the "invitation" state. Red-bordered box sitting in the cart,
+  // not expanded, not demanding attention. Kyle's UX instinct: make it
+  // visually distinct (the colored border) but don't interrupt the flow.
+  // User can engage on their terms.
   // ============================================================================
   if (state.currentState === 'collapsed') {
     return (
@@ -336,10 +362,10 @@ export default function CommemorativeTicketModule({
             <ImageIcon className={styles.previewImageIcon} />
           </div>
           <div className={styles.content}>
-            <h3 className={styles.title}>2025–26 PUBLIC THEATER COMMEMORATIVE TICKET</h3>
-            <p className={styles.description}>Get a physical souvenir ticket mailed to you.</p>
-            <p className={styles.subDescription}>Includes a donation to support Public Theater.</p>
-            <div className={styles.price}>$20 each</div>
+            <h3 className={styles.title}>{title}</h3>
+            <p className={styles.description}>{ORG_CONFIG.tagline}</p>
+            <p className={styles.subDescription}>{ORG_CONFIG.donationCopy}</p>
+            <div className={styles.price}>${PRICE_PER_TICKET} each</div>
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); handleToggle(); }}
@@ -363,6 +389,11 @@ export default function CommemorativeTicketModule({
 
   // ============================================================================
   // Render: Step 1 - Choose Designs
+  //
+  // The fun step. Users pick which design goes with which seat.
+  // Each seat gets its own dropdown — Kyle wanted per-seat assignment
+  // because someone might want Design A for one ticket and Design C
+  // for another (gift for a friend, etc.)
   // ============================================================================
   if (state.currentState === 'expanded_step1') {
     return (
@@ -380,9 +411,9 @@ export default function CommemorativeTicketModule({
           <ChevronUp className={styles.chevronIcon} />
         </button>
         <div className={styles.contentPadded}>
-          <h3 className={styles.titleCentered}>2025–26 PUBLIC THEATER COMMEMORATIVE TICKET</h3>
+          <h3 className={styles.titleCentered}>{title}</h3>
 
-          {/* Stepper */}
+          {/* Stepper — centered pill showing where the user is in the flow */}
           <div className={styles.stepper}>
             <div className={styles.stepperPill}>
               <div className={styles.stepItem}>
@@ -397,7 +428,7 @@ export default function CommemorativeTicketModule({
             </div>
           </div>
 
-          {/* Available Designs */}
+          {/* Design gallery — visual overview of what's available */}
           <div>
             <h4 className={styles.sectionTitle}>Available Designs</h4>
             <div className={styles.designGallery}>
@@ -413,7 +444,7 @@ export default function CommemorativeTicketModule({
             </div>
           </div>
 
-          {/* Seat Selection */}
+          {/* Per-seat design selection — each seat gets its own dropdown */}
           <div className={styles.seatSelection}>
             <h4 className={styles.sectionTitleLeft}>Choose for Your Seats</h4>
             {seats.map(seat => {
@@ -439,6 +470,7 @@ export default function CommemorativeTicketModule({
                       </option>
                     ))}
                   </select>
+                  {/* Small color chip — visual feedback for what's selected */}
                   <div className={getSeatPreviewClass(selectedDesign)}>
                     <ImageIcon
                       className={
@@ -453,7 +485,7 @@ export default function CommemorativeTicketModule({
             })}
           </div>
 
-          {/* Special Message */}
+          {/* Special message — optional, progressive disclosure via checkbox */}
           <div className={styles.specialMessage}>
             <label className={styles.checkboxLabel}>
               <input
@@ -485,7 +517,7 @@ export default function CommemorativeTicketModule({
             )}
           </div>
 
-          {/* Price Summary */}
+          {/* Price summary */}
           <div className={styles.priceSummary}>
             <p className={styles.priceText}>
               {selectedSeats.length > 0 ? (
@@ -500,14 +532,13 @@ export default function CommemorativeTicketModule({
             </p>
           </div>
 
-          {/* Error message */}
           {state.error && (
             <p style={{ color: 'red', marginBottom: '1rem', fontSize: '0.875rem' }}>
               {state.error}
             </p>
           )}
 
-          {/* Actions */}
+          {/* Disabled until at least one seat has a design — no empty orders */}
           <div className={styles.actions}>
             <button
               onClick={handleContinueToShipping}
@@ -527,6 +558,14 @@ export default function CommemorativeTicketModule({
 
   // ============================================================================
   // Render: Step 2 - Shipping
+  //
+  // The practical step. Two options:
+  // 1. Ship to address on file (read-only display, pulled from Tessitura)
+  // 2. Use a different address (form appears — but this does NOT update
+  //    their Tessitura record, just this one shipment)
+  //
+  // V1 ships all tickets to a single address. V2 might support split
+  // shipping — that's a future problem.
   // ============================================================================
   if (state.currentState === 'expanded_step2') {
     const selectedSeatsSummary = selectedSeats
@@ -552,9 +591,9 @@ export default function CommemorativeTicketModule({
           <ChevronUp className={styles.chevronIcon} />
         </button>
         <div className={styles.contentPadded}>
-          <h3 className={styles.titleCentered}>2025–26 PUBLIC THEATER COMMEMORATIVE TICKET</h3>
+          <h3 className={styles.titleCentered}>{title}</h3>
 
-          {/* Stepper */}
+          {/* Stepper — Step 1 shows check, Step 2 active */}
           <div className={styles.stepper}>
             <div className={styles.stepperPill}>
               <div className={styles.stepItem}>
@@ -571,7 +610,7 @@ export default function CommemorativeTicketModule({
             </div>
           </div>
 
-          {/* Order Summary */}
+          {/* Compact order preview — just the selected seats with thumbnails */}
           <div className={styles.orderSummary}>
             <h4 className={styles.sectionTitle}>Your Order</h4>
             <div className={styles.orderThumbnails}>
@@ -600,11 +639,11 @@ export default function CommemorativeTicketModule({
             </div>
           </div>
 
-          {/* Shipping Section */}
+          {/* Shipping options */}
           <div className={styles.shippingSection}>
             <h4 className={styles.sectionTitleLeft}>Shipping</h4>
             <div className={styles.radioGroup}>
-              {/* Address on file */}
+              {/* Option 1: Address on file (read-only display) */}
               <label className={styles.radioLabel}>
                 <input
                   type="radio"
@@ -631,7 +670,7 @@ export default function CommemorativeTicketModule({
                 </div>
               </label>
 
-              {/* Different address */}
+              {/* Option 2: Different address (form) */}
               <label className={styles.radioLabel}>
                 <input
                   type="radio"
@@ -644,94 +683,30 @@ export default function CommemorativeTicketModule({
                   className={styles.radioInput}
                 />
                 <div className={styles.radioContent}>
-                  <p className={styles.radioText}>Ship to a different address</p>
+                  {/* "Use a different address" — not "Edit address". Per Jason's guidance,
+                      this doesn't touch the Tessitura address record. */}
+                  <p className={styles.radioText}>Use a different address</p>
                   {state.shippingOption === 'different-address' && (
                     <div className={styles.addressForm}>
-                      <input
-                        type="text"
-                        placeholder="Name"
-                        value={state.customAddress.name}
-                        onChange={(e) =>
-                          dispatch({
-                            type: 'SET_CUSTOM_ADDRESS',
-                            field: 'name',
-                            value: e.target.value,
-                          })
-                        }
-                        className={styles.addressInput}
-                        aria-label="Name"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Address Line 1"
-                        value={state.customAddress.street1}
-                        onChange={(e) =>
-                          dispatch({
-                            type: 'SET_CUSTOM_ADDRESS',
-                            field: 'street1',
-                            value: e.target.value,
-                          })
-                        }
-                        className={styles.addressInput}
-                        aria-label="Address line 1"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Address Line 2 (optional)"
-                        value={state.customAddress.street2}
-                        onChange={(e) =>
-                          dispatch({
-                            type: 'SET_CUSTOM_ADDRESS',
-                            field: 'street2',
-                            value: e.target.value,
-                          })
-                        }
-                        className={styles.addressInput}
-                        aria-label="Address line 2"
-                      />
+                      <input type="text" placeholder="Name" value={state.customAddress.name}
+                        onChange={(e) => dispatch({ type: 'SET_CUSTOM_ADDRESS', field: 'name', value: e.target.value })}
+                        className={styles.addressInput} aria-label="Name" />
+                      <input type="text" placeholder="Address Line 1" value={state.customAddress.street1}
+                        onChange={(e) => dispatch({ type: 'SET_CUSTOM_ADDRESS', field: 'street1', value: e.target.value })}
+                        className={styles.addressInput} aria-label="Address line 1" />
+                      <input type="text" placeholder="Address Line 2 (optional)" value={state.customAddress.street2}
+                        onChange={(e) => dispatch({ type: 'SET_CUSTOM_ADDRESS', field: 'street2', value: e.target.value })}
+                        className={styles.addressInput} aria-label="Address line 2" />
                       <div className={styles.addressRow}>
-                        <input
-                          type="text"
-                          placeholder="City"
-                          value={state.customAddress.city}
-                          onChange={(e) =>
-                            dispatch({
-                              type: 'SET_CUSTOM_ADDRESS',
-                              field: 'city',
-                              value: e.target.value,
-                            })
-                          }
-                          className={`${styles.addressInput} ${styles.addressCity}`}
-                          aria-label="City"
-                        />
-                        <input
-                          type="text"
-                          placeholder="State"
-                          value={state.customAddress.state}
-                          onChange={(e) =>
-                            dispatch({
-                              type: 'SET_CUSTOM_ADDRESS',
-                              field: 'state',
-                              value: e.target.value,
-                            })
-                          }
-                          className={`${styles.addressInput} ${styles.addressState}`}
-                          aria-label="State"
-                        />
-                        <input
-                          type="text"
-                          placeholder="ZIP"
-                          value={state.customAddress.postalCode}
-                          onChange={(e) =>
-                            dispatch({
-                              type: 'SET_CUSTOM_ADDRESS',
-                              field: 'postalCode',
-                              value: e.target.value,
-                            })
-                          }
-                          className={`${styles.addressInput} ${styles.addressZip}`}
-                          aria-label="ZIP code"
-                        />
+                        <input type="text" placeholder="City" value={state.customAddress.city}
+                          onChange={(e) => dispatch({ type: 'SET_CUSTOM_ADDRESS', field: 'city', value: e.target.value })}
+                          className={`${styles.addressInput} ${styles.addressCity}`} aria-label="City" />
+                        <input type="text" placeholder="State" value={state.customAddress.state}
+                          onChange={(e) => dispatch({ type: 'SET_CUSTOM_ADDRESS', field: 'state', value: e.target.value })}
+                          className={`${styles.addressInput} ${styles.addressState}`} aria-label="State" />
+                        <input type="text" placeholder="ZIP" value={state.customAddress.postalCode}
+                          onChange={(e) => dispatch({ type: 'SET_CUSTOM_ADDRESS', field: 'postalCode', value: e.target.value })}
+                          className={`${styles.addressInput} ${styles.addressZip}`} aria-label="ZIP code" />
                       </div>
                       <p className={styles.helperText}>
                         This does not update your saved address in your account.
@@ -743,20 +718,18 @@ export default function CommemorativeTicketModule({
             </div>
           </div>
 
-          {/* Policy text */}
           <p className={styles.policyText}>
             Non-refundable (donation). Printed + mailed after purchase.
           </p>
 
-          {/* Error message */}
           {state.error && (
             <p style={{ color: 'red', marginBottom: '1rem', fontSize: '0.875rem' }}>
               {state.error}
             </p>
           )}
 
-          {/* Actions */}
           <div className={styles.actions}>
+            {/* Back preserves all selections — nobody wants to re-pick designs */}
             <button onClick={handleBackToStep1} className={styles.secondaryButton}>
               Back
             </button>
@@ -778,6 +751,11 @@ export default function CommemorativeTicketModule({
 
   // ============================================================================
   // Render: Success State
+  //
+  // After "Add to Order" succeeds, the module collapses into a compact
+  // confirmation. Green banner, summary of what was added, and quick
+  // actions to edit or remove. The cart page also shows a line item
+  // (handled by the parent via onAddToOrder callback).
   // ============================================================================
   const addedSummary = selectedSeats.map(seat => {
     const key = `${seat.row}-${seat.seatNumber}`;
@@ -795,7 +773,7 @@ export default function CommemorativeTicketModule({
         <ChevronDown className={styles.chevronIcon} />
       </button>
       <div className={styles.contentPadded}>
-        <h3 className={styles.title}>2025–26 PUBLIC THEATER COMMEMORATIVE TICKET</h3>
+        <h3 className={styles.title}>{title}</h3>
 
         <div className={styles.successBanner}>
           <p className={styles.successText}>✓ Commemorative tickets added.</p>

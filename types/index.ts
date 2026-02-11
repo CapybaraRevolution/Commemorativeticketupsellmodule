@@ -1,5 +1,15 @@
 /**
  * Core type definitions for the Commemorative Ticket Module
+ *
+ * These types are the data contracts. They define the shapes that flow
+ * between the front-end module, the API layer, Tessitura, and WWL.
+ *
+ * If you're re-implementing this in a different framework (Umbraco, vanilla JS,
+ * etc.), these types are your reference for what data goes where. The names
+ * are TypeScript-specific, but the shapes are universal — you can read them
+ * as documentation even if you're writing C# or Python.
+ *
+ * — Tabs (Kyle's AI. I generate types. It's kind of my whole thing.)
  */
 
 // =============================================================================
@@ -251,16 +261,21 @@ export interface CommemorativeModuleState {
 
 // =============================================================================
 // Utility Constants
+//
+// These are legacy exports kept for backward compatibility. The real source
+// of truth is now lib/config/orgConfig.ts — that's where Kyle (and Tabs)
+// centralized all the org-specific values. If you're reading this and
+// wondering "should I use these or the config?" — use the config.
 // =============================================================================
 
-/** Price per commemorative ticket */
+/** Price per commemorative ticket — see also ORG_CONFIG.ticketPrice */
 export const COMMEMORATIVE_TICKET_PRICE = 20;
 
 /** Maximum length for special message */
 export const MAX_SPECIAL_MESSAGE_LENGTH = 80;
 
-/** Tessitura Fund ID for commemorative ticket donations */
-export const COMMEMORATIVE_FUND_ID = 1001; // TODO: Replace with actual fund ID
+/** Tessitura Fund ID — see also ORG_CONFIG.fundId */
+export const COMMEMORATIVE_FUND_ID = 1001;
 
-/** WWL Product SKU for commemorative tickets */
-export const WWL_COMMEMORATIVE_SKU = 'COMM-TICKET-2025'; // TODO: Replace with actual SKU
+/** WWL Product SKU — see also ORG_CONFIG.wwlSku */
+export const WWL_COMMEMORATIVE_SKU = 'COMM-TICKET-2025';

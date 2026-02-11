@@ -2,13 +2,21 @@
 
 **Date:** January 2026
 
+### A note before you start
+
+Hi. I'm the AI that Kyle points at a screen and says "make this real." You can call me Tabs — because I'm the thing he alt-tabs to when he needs code scaffolded. I'm not a developer, and neither is Kyle (his words, not mine — I think he's selling himself short). But between the two of us we got this module into a state that hopefully makes your life easier rather than harder.
+
+Full disclosure: this codebase is the product of Kyle and me disagreeing our way to something good. I built the first version with one client's name plastered everywhere. Kyle took one look and said "what happens when we demo this for someone else?" I said "we'll deal with it then." He said "it's then." So now there's a config file. He has good instincts. I have a hard time admitting that.
+
+You'll see me in the inline comments throughout the codebase, explaining why we made certain decisions. If something seems odd, there's probably a comment nearby from me explaining Kyle's reasoning. If something seems *really* odd, that one might actually be my fault.
+
 ---
 
 ## Read First: Scope & Technology Assumptions
 
 ### What this repo is
 
-A **UX prototype and integration scaffold** for a "Commemorative Ticket" cart interrupt module that can be embedded in any Tessitura-powered ticketing flow. The prototype demonstrates:
+A **UX prototype and integration scaffold** for a "Commemorative Ticket" cart interrupt module designed to slot into any Tessitura-powered ticketing flow. The prototype demonstrates:
 
 - The complete UX flow (collapsed → design selection → shipping → success)
 - Data contracts and API shapes for Tessitura and WWL integration
@@ -36,11 +44,26 @@ This prototype was built with **React, TypeScript, Next.js, and CSS Modules** be
 - API request/response patterns (the contracts)
 - Tessitura endpoint intentions (the integration points)
 - WWL payload structure (the fulfillment data)
+- Org config pattern (the white-labeling approach)
 
 **What is implementation-specific:**
 - React component code
 - CSS Module syntax
 - Next.js conventions
+
+---
+
+## Org Config — How the Demo Stays Generic
+
+All org-specific values live in a single file: `lib/config/orgConfig.ts`
+
+This includes: org name, season label, module title, donation copy, support email, ticket price, Tessitura Fund ID, WWL SKU, and design-to-variant mappings.
+
+**To demo for a different client:** change this one file. The module reads from it everywhere.
+
+**To see the original values used for the initial client:** see `docs/REFERENCE_PUBLIC_THEATER.md`.
+
+The color palette is controlled via CSS custom properties in `app/globals.css` (currently a neutral steel-blue). Swap `--color-primary` and `--color-primary-dark` to rebrand.
 
 ---
 
@@ -51,6 +74,7 @@ This prototype was built with **React, TypeScript, Next.js, and CSS Modules** be
 | Asset | Purpose | How to use |
 |-------|---------|------------|
 | `types/index.ts` | TypeScript type definitions | Reference for data shapes; translate to client's type system if needed |
+| `lib/config/orgConfig.ts` | Centralized org-specific values | Shows what needs to be configured per client |
 | UX flow (run the demo) | Behavior specification | The demo IS the spec — collapsed state, step 1, step 2, success state |
 | `lib/tessitura/tessituraClient.ts` | Interface for Tessitura operations | Documents what Tessitura calls are needed |
 | `lib/wwl/wwlPayload.ts` | WWL payload structure | Documents what data WWL expects |
@@ -70,7 +94,7 @@ This prototype was built with **React, TypeScript, Next.js, and CSS Modules** be
 |-------|--------|
 | `app/cart/page.tsx` | Fake cart page for visual context |
 | `app/page.tsx`, `app/layout.tsx` | Next.js boilerplate |
-| Timer banner, checkout bar, branding | Demo chrome with placeholder branding |
+| Timer banner, checkout bar, "VENUE." logo | Demo chrome with placeholder branding |
 | `lib/tessitura/mockTessituraClient.ts` | Local development mock |
 
 ---
@@ -81,9 +105,10 @@ The module sits inside an existing cart/checkout page. It needs:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  CommemorativeTicketModule (the red box)                        │
+│  CommemorativeTicketModule (the bordered box)                   │
 │  • Collapsed state → Expanded Step 1 → Step 2 → Success         │
 │  • Self-contained UI with internal state management             │
+│  • Reads org-specific values from lib/config/orgConfig.ts       │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -131,7 +156,7 @@ The module sits inside an existing cart/checkout page. It needs:
 
 3. **Response shape variance:** Tessitura response structures vary by version and configuration. The prototype includes mapping functions (`mapCartResponse`, `mapAddressResponse`) as examples, but field names will need adjustment.
 
-4. **Contribution model:** The prototype treats commemorative tickets as donations to a Fund. Placeholder Fund ID is `1001`.
+4. **Contribution model:** The prototype treats commemorative tickets as donations to a Fund. The Fund ID is configured in `lib/config/orgConfig.ts` (placeholder: `1001`).
 
 ### Integration checkpoints
 
@@ -159,7 +184,7 @@ The prototype provides:
 
 ### Design → WWL variant mapping
 
-Located in `lib/wwl/wwlPayload.ts` → `mapDesignIdToWWLVariant()`:
+Configured in `lib/config/orgConfig.ts` → `wwlVariantMap`, and used by `mapDesignIdToWWLVariant()` in `lib/wwl/wwlPayload.ts`:
 
 ```
 design-a → SEASON-2025
@@ -167,7 +192,7 @@ design-b → CLASSIC
 design-c → LIMITED-ED
 ```
 
-These are placeholders; actual codes depend on WWL product configuration.
+These are placeholders; actual codes depend on the org's WWL product setup.
 
 ---
 
@@ -233,15 +258,15 @@ interface AddToOrderRequest {
 
 ```typescript
 interface WWLOrderPayload {
-  orderId: string;          // Tessitura order ID after checkout
+  orderId: string;
   customer: { constituentId, email, name };
   shipToAddress: Address;
   items: Array<{
-    productId: string;      // WWL SKU
+    productId: string;      // WWL SKU from orgConfig
     section: string;
     row: string;
     seat: string;
-    designVariant: string;  // WWL variant code
+    designVariant: string;  // WWL variant code from orgConfig
     specialMessage1?: string;
   }>;
 }
@@ -258,12 +283,13 @@ Areas where the prototype makes assumptions that need alignment with the client'
 | **Technology stack** | React/TypeScript/Next.js | What is the client actually using? (Umbraco? Vanilla JS? Vue?) |
 | **Session derivation** | `sessionKey` from query param | How does their existing Tessitura session work? |
 | **Backend implementation** | Next.js API routes | What's their backend pattern? (.NET? Serverless? Umbraco controllers?) |
-| **Styling approach** | CSS Modules | What's their design system / CSS methodology? |
-| **Fund ID** | Placeholder `1001` | Which Fund ID for commemorative ticket donations? |
-| **Appeal ID** | Not included | Should an Appeal ID be attached for campaign tracking? |
+| **Styling approach** | CSS Modules with CSS custom properties | What's their design system / CSS methodology? |
+| **Org configuration** | `lib/config/orgConfig.ts` | What are the real values for this client? (org name, Fund ID, SKU, etc.) |
+| **Fund ID** | Placeholder `1001` in orgConfig | Which Fund ID for commemorative ticket donations? |
+| **Appeal ID** | `undefined` in orgConfig | Should an Appeal ID be attached for campaign tracking? |
 | **Data persistence** | Console.log placeholder | Where to store selection data between add-to-order and post-checkout? |
 | **Post-checkout hook** | Not implemented | Where does WWL submission get triggered in their flow? |
-| **WWL product mapping** | Placeholder variant codes | What are the actual WWL SKU and variant codes? |
+| **WWL product mapping** | Placeholder codes in orgConfig | What are the actual WWL SKU and variant codes? |
 | **Error handling** | Basic | What are their patterns for failure/retry? |
 
 ---
@@ -287,14 +313,32 @@ The demo uses mock data and shows the complete UX flow:
 
 ---
 
+## Inline Comment Guide
+
+The codebase includes annotated comments explaining design decisions. Look for:
+
+- `INTEGRATION ASSUMPTION` — places where the prototype assumes something about the client's infrastructure
+- `INTEGRATION NOTE` — places where the implementation is a placeholder meant to be adapted
+- Comments from **Tabs** — Kyle's AI scaffolding assistant, explaining the reasoning behind decisions
+
+---
+
 ## File Reference
+
+### Configuration
+
+```
+lib/config/orgConfig.ts                ← All org-specific values (one-file rebrand)
+docs/REFERENCE_PUBLIC_THEATER.md        ← Archived original client values
+app/globals.css                         ← CSS custom properties (color palette here)
+```
 
 ### Framework-agnostic (reference for any implementation)
 
 ```
 types/index.ts                          ← Data shapes and contracts
 lib/tessitura/tessituraClient.ts        ← Tessitura interface definition
-lib/wwl/wwlPayload.ts                   ← WWL payload structure
+lib/wwl/wwlPayload.ts                   ← WWL payload structure + variant mapping
 ```
 
 ### React implementation (may need rewrite)
@@ -327,6 +371,7 @@ This prototype demonstrates **what** the module should do (UX behavior, data flo
 
 The key transferable assets are:
 - The UX flow (run the demo)
+- The org config pattern (`lib/config/orgConfig.ts`)
 - The data contracts (`types/index.ts`)
 - The Tessitura endpoint intentions
 - The WWL payload structure

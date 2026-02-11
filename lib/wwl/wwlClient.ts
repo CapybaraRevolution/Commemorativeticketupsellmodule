@@ -1,77 +1,68 @@
 /**
  * WWL (World Wide Logistics) Client
- * 
+ *
  * INTEGRATION NOTE: Placeholder implementation intended to be adapted to existing integration patterns.
- * 
- * TIMING: This client should be called AFTER payment is confirmed in Tessitura (post-checkout),
- * NOT during the "add to order" step.
- * 
+ *
+ * TIMING (one more time for the people in the back):
+ * This client gets called AFTER payment is confirmed. Post-checkout. Not before.
+ *
  * Flow:
- * 1. User selects commemorative tickets → added to Tessitura cart as donation
+ * 1. User picks commemorative tickets → donation added to Tessitura cart
  * 2. User completes checkout → Tessitura processes payment
- * 3. On payment confirmation → Call WWL to submit fulfillment order
- * 4. WWL prints and ships the commemorative tickets
+ * 3. Payment confirmed → THIS client sends the order to WWL
+ * 4. WWL prints the tickets and ships them
+ *
+ * The prototype doesn't implement step 3's trigger because that lives in
+ * whatever post-checkout hook the client already has. We just provide the
+ * payload builder (wwlPayload.ts) and this client stub so the integration
+ * dev has something to work with.
+ *
+ * — Tabs (I type, Kyle thinks, everybody wins)
  */
 
 import type { WWLOrderPayload } from '@/types';
 import { validateWWLPayload } from './wwlPayload';
 
-/**
- * Result of a WWL order submission
- */
 export interface WWLSubmitResult {
   success: boolean;
-  /** WWL's order confirmation number */
   wwlOrderId?: string;
-  /** Estimated ship date */
   estimatedShipDate?: string;
-  /** Error message if failed */
   error?: string;
-  /** Validation errors if payload was invalid */
   validationErrors?: string[];
 }
 
-/**
- * WWL API configuration
- */
 export interface WWLConfig {
-  /** Base URL for WWL API */
   baseUrl: string;
-  /** API key for authentication */
   apiKey: string;
-  /** Account/client ID with WWL */
   clientId: string;
-  /** Request timeout in milliseconds */
   timeout?: number;
 }
 
 /**
  * WWL API Client
- * 
+ *
  * INTEGRATION NOTE: Stub client with placeholder implementations.
- * Adapt submitOrder() to match your WWL API documentation.
+ * The submitOrder() method is the one that matters — replace its guts
+ * with a real fetch call based on WWL's API documentation.
  */
 export class WWLClient {
   private readonly config: WWLConfig;
 
   constructor(config: WWLConfig) {
     this.config = {
-      timeout: 30000, // Default 30 second timeout
+      timeout: 30000,
       ...config,
     };
   }
 
   /**
-   * Submit a commemorative ticket order to WWL for fulfillment
-   * 
-   * INTEGRATION NOTE: Stub implementation. Replace with actual WWL API call.
-   * See buildWWLPayload() in wwlPayload.ts for payload structure.
-   * 
-   * @param payload - The WWL order payload
-   * @returns Result with WWL order ID or error
+   * Submit a commemorative ticket order to WWL for fulfillment.
+   *
+   * INTEGRATION NOTE: This is a stub. It validates the payload (that part
+   * is real and reusable) and then pretends to submit it. Replace the
+   * console.log + fake response with an actual fetch call.
    */
   async submitOrder(payload: WWLOrderPayload): Promise<WWLSubmitResult> {
-    // Validate payload before submission
     const validationErrors = validateWWLPayload(payload);
     if (validationErrors.length > 0) {
       return {
@@ -81,9 +72,12 @@ export class WWLClient {
       };
     }
 
-    // INTEGRATION NOTE: Replace this stub with actual WWL API call
+    // INTEGRATION NOTE: Replace this stub with the actual WWL API call.
+    // You'll want something like:
+    //   const response = await fetch(`${this.config.baseUrl}/api/orders`, { ... })
+    // But we don't have WWL's docs, so we just log and return success.
     console.log('[WWL Stub] submitOrder called with payload:', JSON.stringify(payload, null, 2));
-    
+
     return {
       success: true,
       wwlOrderId: `WWL-${Date.now()}`,
@@ -92,12 +86,8 @@ export class WWLClient {
   }
 
   /**
-   * Check the status of a WWL order
-   * 
-   * INTEGRATION NOTE: Stub implementation. Implement if WWL provides a status endpoint.
-   * 
-   * @param wwlOrderId - The WWL order ID
-   * @returns Order status information
+   * Check order status (stub).
+   * INTEGRATION NOTE: Implement if WWL provides a status endpoint.
    */
   async getOrderStatus(wwlOrderId: string): Promise<{
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'error';
@@ -106,49 +96,33 @@ export class WWLClient {
     error?: string;
   }> {
     console.log('[WWL Stub] getOrderStatus called for:', wwlOrderId);
-
-    // STUB: Return mock status
-    return {
-      status: 'pending',
-    };
+    return { status: 'pending' };
   }
 
   /**
-   * Cancel a WWL order (if possible)
-   * 
-   * INTEGRATION NOTE: Stub implementation. Implement if WWL supports order cancellation.
-   * Note: May only be possible before fulfillment begins.
-   * 
-   * @param wwlOrderId - The WWL order ID to cancel
-   * @returns Whether cancellation was successful
+   * Cancel an order (stub).
+   * INTEGRATION NOTE: Implement if WWL supports cancellation.
    */
   async cancelOrder(wwlOrderId: string): Promise<{
     success: boolean;
     error?: string;
   }> {
     console.log('[WWL Stub] cancelOrder called for:', wwlOrderId);
-
-    // STUB: Return mock result
-    return {
-      success: true,
-    };
+    return { success: true };
   }
 
-  /**
-   * Calculate estimated ship date (2-3 weeks from now)
-   */
   private calculateEstimatedShipDate(): string {
     const shipDate = new Date();
-    shipDate.setDate(shipDate.getDate() + 14); // 2 weeks
+    shipDate.setDate(shipDate.getDate() + 14);
     return shipDate.toISOString().split('T')[0];
   }
 }
 
 /**
- * Create a WWL client instance
- * 
+ * Create a WWL client instance.
+ *
  * INTEGRATION NOTE: Reads config from environment variables.
- * Set WWL_API_URL, WWL_API_KEY, WWL_CLIENT_ID in production.
+ * In production, set WWL_API_URL, WWL_API_KEY, WWL_CLIENT_ID.
  */
 export function createWWLClient(): WWLClient {
   const config: WWLConfig = {
