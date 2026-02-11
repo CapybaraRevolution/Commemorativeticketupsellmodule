@@ -570,13 +570,22 @@ export default function CommemorativeTicketModule({
   // it. If/when it lands, the shipping step gets a per-seat address UI.
   // ============================================================================
   if (state.currentState === 'expanded_step2') {
-    const selectedSeatsSummary = selectedSeats
-      .map(seat => {
-        const key = `${seat.row}-${seat.seatNumber}`;
-        const design = DESIGNS.find(d => d.id === state.seatSelections[key]);
-        return `Row ${seat.row} ${seat.seatNumber} (${design?.name})`;
-      })
-      .join(', ');
+    // Build per-seat summary data for the order review.
+    // Kyle called me out for originally cramming this into a single
+    // comma-separated string. He was right — it's easier to scan as
+    // a list. The seat data (section, row, number) flows from Tessitura
+    // via the Cart type; the design selection is local module state.
+    //
+    // DATA CONTRACT NOTE: In production, the seat data arriving here
+    // originates from Tessitura's cart (GET /Web/Cart). The pipeline is:
+    //   Tessitura → API route → Cart type → module props → this summary
+    // The module doesn't fetch seats itself; it receives them as props.
+    // Whatever system renders this module is responsible for that fetch.
+    const selectedSeatsWithDesign = selectedSeats.map(seat => {
+      const key = `${seat.row}-${seat.seatNumber}`;
+      const design = DESIGNS.find(d => d.id === state.seatSelections[key]);
+      return { seat, designName: design?.name || 'Unknown' };
+    });
 
     return (
       <div className={styles.container}>
@@ -634,8 +643,14 @@ export default function CommemorativeTicketModule({
               })}
             </div>
             <div className={styles.orderSummaryBox}>
-              <p className={styles.orderSummaryText}>
-                Seats: {selectedSeatsSummary} •{' '}
+              <ul className={styles.orderSummaryList}>
+                {selectedSeatsWithDesign.map(({ seat, designName }) => (
+                  <li key={`${seat.row}-${seat.seatNumber}`} className={styles.orderSummaryListItem}>
+                    Row {seat.row} Seat {seat.seatNumber} &mdash; {designName}
+                  </li>
+                ))}
+              </ul>
+              <p className={styles.orderSummaryTotal}>
                 <span className={styles.priceTextBold}>${totalPrice} total</span>
               </p>
             </div>

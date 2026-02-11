@@ -481,13 +481,35 @@
 
 .orderSummaryBox {
   background-color: var(--color-gray-50);
-  padding: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
   border-radius: var(--radius-md);
-  text-align: center;
 }
 
-.orderSummaryText {
+.orderSummaryList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-2) 0;
+}
+
+.orderSummaryListItem {
   font-size: var(--font-size-sm);
+  padding: var(--spacing-1) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.orderSummaryListItem::before {
+  content: '•';
+  color: var(--color-gray-400);
+  font-weight: 700;
+}
+
+.orderSummaryTotal {
+  font-size: var(--font-size-sm);
+  padding-top: var(--spacing-2);
+  border-top: 1px solid var(--color-gray-200);
+  text-align: right;
 }
 
 /* Shipping Section */
