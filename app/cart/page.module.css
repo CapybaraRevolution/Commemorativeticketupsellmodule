@@ -221,14 +221,16 @@
   margin-bottom: var(--spacing-1);
 }
 
-.commemorativeActions {
+.commemorativeLineActions {
   display: flex;
   align-items: center;
   gap: var(--spacing-4);
+  margin-top: var(--spacing-2);
 }
 
 .commemorativePrice {
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .editLink {

@@ -202,6 +202,13 @@ export default function CartPage() {
               <span className={styles.summaryValue}>${serviceFee}</span>
             </div>
 
+            {/* Commemorative ticket line item.
+                Uses real row/seat data — Kyle caught that "Ticket 1" was
+                too generic. Patrons should see their actual seats. — Tabs
+
+                INTEGRATION NOTE: In production, the cart total is likely
+                calculated by Tessitura, not by us. This front-end math
+                is just for the demo. Respect the source of truth. */}
             {commemorativeItem && (
               <div className={styles.commemorativeLine}>
                 <div className={styles.commemorativeDetails}>
@@ -211,19 +218,20 @@ export default function CartPage() {
                   <div className={styles.commemorativeItems}>
                     {commemorativeItem.selections.map((selection, idx) => (
                       <div key={idx} className={styles.commemorativeItem}>
-                        Ticket {idx + 1}: {selection.designName}
+                        Row {selection.seat.row} Seat {selection.seat.seatNumber}: {selection.designName}
                       </div>
                     ))}
                   </div>
+                  <div className={styles.commemorativeLineActions}>
+                    <button className={styles.editLink}>Edit</button>
+                    <span className={styles.separator}>|</span>
+                    <button onClick={handleRemove} className={styles.editLink}>
+                      Remove
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.commemorativeActions}>
-                  <span className={styles.commemorativePrice}>${commemorativeItem.price}</span>
-                  <button className={styles.editLink}>Edit</button>
-                  <span className={styles.separator}>|</span>
-                  <button onClick={handleRemove} className={styles.editLink}>
-                    Remove
-                  </button>
-                </div>
+                {/* Price pinned far-right to align with the fee/total column */}
+                <span className={styles.commemorativePrice}>${commemorativeItem.price}</span>
               </div>
             )}
 
