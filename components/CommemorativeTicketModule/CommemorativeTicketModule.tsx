@@ -564,8 +564,10 @@ export default function CommemorativeTicketModule({
   // 2. Use a different address (form appears — but this does NOT update
   //    their Tessitura record, just this one shipment)
   //
-  // V1 ships all tickets to a single address. V2 might support split
-  // shipping — that's a future problem.
+  // V1: Single shipping address only. Multi-address is on the roadmap
+  // but deliberately deferred — we want clients on board first to
+  // validate whether split shipping is actually needed before building
+  // it. If/when it lands, the shipping step gets a per-seat address UI.
   // ============================================================================
   if (state.currentState === 'expanded_step2') {
     const selectedSeatsSummary = selectedSeats

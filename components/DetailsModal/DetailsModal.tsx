@@ -141,9 +141,10 @@ export default function DetailsModal({ isOpen, onClose }: DetailsModalProps) {
               your shipping address is correct, as we cannot redirect shipments once they have
               been sent.
             </p>
-            <p className={styles.sectionTextBold} style={{ marginTop: '0.5rem' }}>
-              Need to ship to multiple addresses? You must place separate orders for each shipping address.
-            </p>
+            {/* V1: Single shipping address only. Multi-address shipping is on
+                the roadmap but intentionally deferred until we have clients
+                on board and can validate real demand. When that feature lands,
+                this copy gets swapped for a multi-address flow. — Tabs */}
           </section>
 
           <section className={styles.section}>
