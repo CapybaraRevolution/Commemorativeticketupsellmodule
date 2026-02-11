@@ -201,6 +201,7 @@
 
 .commemorativeLine {
   composes: summaryLine;
+  align-items: flex-start;
 }
 
 .commemorativeDetails {
