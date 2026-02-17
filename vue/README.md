@@ -155,15 +155,114 @@ Every color in the components resolves through CSS custom properties. If your Um
 
 Define any subset of these on your page; the module picks up what's there and falls back for the rest.
 
+**Field validation tokens:**
+```css
+:root {
+  --color-field-error: #ef4444;    /* Error border + icon */
+  --color-field-error-bg: #fef2f2; /* Error input background */
+  --color-field-success: #22c55e;  /* Success border + icon */
+}
+```
+
+Define any subset of these on your page; the module picks up what's there and falls back for the rest.
+
+## Form Validation
+
+The "Use a different address" form validates fields on blur (when the user clicks or tabs away from a field). This was Kyle's call from the start — "when they click out, that's when it happens." Clean, non-intrusive, gives the user space to finish typing before we judge them. — Tabs
+
+**Field states:**
+- **Default** — neutral border
+- **Error** — red border, exclamation icon overlaid inside the input, error message below
+- **Valid** — green border, check icon overlaid
+
+**Validation rules:**
+| Field | Rule | Error message |
+|-------|------|---------------|
+| Name | Required, min 2 chars | "This field is needed for shipping" / "Name should be at least 2 characters" |
+| Address Line 1 | Required | "This field is needed for shipping" |
+| Address Line 2 | Optional | (no validation) |
+| City | Required | "This field is needed for shipping" |
+| State | `<select>` dropdown | "Please select a state" |
+| ZIP | US format: 5 digits or 5+4 | "That doesn't look like a valid ZIP code — US ZIPs are 5 digits (or 5+4 like 10001-1234)" |
+
+**State dropdown** uses all 50 US states + DC + territories, following USWDS best practice. The data lives in `lib/config/orgConfig.ts` as `US_STATES` — overridable if a future client is in Canada.
+
+## Address Autocomplete
+
+The module supports an optional `addressAutocomplete` prop. Three design decisions worth understanding:
+
+**1. Graceful degradation.** If the prop isn't passed, autocomplete is completely invisible. No broken dropdown, no empty state, no error. The fields just work as plain text inputs. If a client doesn't want to pay for an address service, or the dev doesn't want to integrate one — skip the prop. Nothing breaks.
+
+**2. Fill-all-fields on selection.** When a user clicks a suggestion, ALL address fields populate at once (street1, street2, city, state, ZIP) and validation runs on each automatically. One click, full form, green checkmarks.
+
+**3. Normalization layer.** The return type IS the normalization. Every provider has its own response format. The adapter function you write maps their format to ours. Swap providers without touching the component.
+
+**We don't pick the provider** — you do. The prop accepts any async function that returns address suggestions in our normalized shape:
+
+```typescript
+mountCommemorativeTicketModule('#target', {
+  seats: [...],
+  addressOnFile: {...},
+  sessionKey: '...',
+  addressAutocomplete: async (query) => {
+    // Wire this to Google Places, Smarty, Loqate, etc.
+    // Each provider returns different field names — your adapter
+    // normalizes them into our shape. That's the whole pattern.
+    const results = await yourAddressService.search(query)
+    return results.map(r => ({
+      street1: r.line1,       // Google: formatted_address, Smarty: street_line
+      street2: r.line2,       // Whatever the provider calls it
+      city: r.city,           // Google: locality, Smarty: city_name
+      state: r.stateCode,     // Google: administrative_area_level_1
+      postalCode: r.zip,      // Google: postal_code
+    }))
+  },
+})
+```
+
+If the prop is absent, address fields work as plain inputs. This is the default and it's a perfectly fine experience. — Tabs
+
+## Skeleton Loading
+
+Pass `loading: true` as a prop to show a pulsing skeleton placeholder while cart data is loading:
+
+```typescript
+mountCommemorativeTicketModule('#target', {
+  seats: [],       // Empty initially
+  addressOnFile: null,
+  sessionKey: '',
+  loading: true,   // Shows skeleton
+})
+
+// Later, when data arrives:
+// Re-mount with loading: false and real data
+```
+
+The skeleton mimics the collapsed state's shape — preview image, title lines, button — so there's no layout shift when the real content appears.
+
+## State Transitions
+
+State changes (collapsed, step 1, step 2, success) animate with a fade + slide transition. Kyle builds his own Vue components to understand the framework, and the transition timing here is borrowed from his dropdown work: 100ms ease-out in, 75ms ease-in out. Snappy, not sluggish.
+
+## Accessibility (WCAG 2.2)
+
+- **Focus management**: When the module changes state, focus moves to the new content's heading (via `tabindex="-1"` + `nextTick` focus)
+- **Live regions**: Error messages use `role="alert"` + `aria-live="assertive"`. Price summary uses `aria-live="polite"`. Success banner uses `role="status"`.
+- **Form validation**: `aria-invalid` on error fields, `aria-describedby` linking inputs to error messages
+- **Button states**: `aria-disabled` on the "Continue to shipping" button when no seats are selected
+- **Modal**: `role="dialog"`, `aria-modal`, `aria-labelledby`, focus trap, ESC close, body scroll lock, Teleport to body
+
 ## Dependencies
 
 - **Vue 3** — the only runtime dependency
 - **No icon library** — SVGs are inlined to avoid extra dependencies
+- **No CSS framework** — scoped styles with CSS custom property tokens
 - **No router** — these are self-contained components, not pages
+- **No address provider** — autocomplete is a bring-your-own-provider interface
 
 ## Config
 
-Org-specific values come from `lib/config/orgConfig.ts`. The module reads from there at runtime. To rebrand for a different client, change that one file.
+Org-specific values come from `lib/config/orgConfig.ts`. The module reads from there at runtime. To rebrand for a different client, change that one file. See also `US_STATES` in the same file for the state dropdown data.
 
 ## Behavior reference
 
