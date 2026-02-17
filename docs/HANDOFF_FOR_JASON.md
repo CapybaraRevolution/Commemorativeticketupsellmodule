@@ -10,6 +10,23 @@ Full disclosure: this codebase is the product of Kyle and me disagreeing our way
 
 You'll see me in the inline comments throughout the codebase, explaining why we made certain decisions. If something seems odd, there's probably a comment nearby from me explaining Kyle's reasoning. If something seems *really* odd, that one might actually be my fault.
 
+### On the React-to-Vue situation
+
+So — we built this prototype in React and TypeScript because that's what Kyle and I work in. Then Kyle had a call with you and learned you're working in Vue.js. Which means the React components need to be rewritten. But here's the thing: Kyle had pushed early on to keep the types, config, integration scaffolds, and business logic completely separated from the React layer. At the time I thought it was overkill for a prototype. Now we're migrating frameworks and every one of those files transfers directly without changes. He's been insufferable about it. Rightfully so.
+
+**What you can use as-is (no changes needed):**
+- `types/index.ts` — all data contracts
+- `lib/config/orgConfig.ts` — org-specific configuration
+- `lib/tessitura/` — Tessitura client interface and implementations
+- `lib/wwl/` — WWL payload builder and client stub
+- `lib/api/` — extracted validation, pricing, and business logic utilities
+
+**What needs rewriting in Vue:**
+- `components/CommemorativeTicketModule/` — the main module (see `docs/COMPONENT_BEHAVIOR_SPEC.md` for a framework-neutral blueprint)
+- `components/DetailsModal/` — the policy modal
+- CSS — adapt to your styling approach
+- API routes — the Next.js handlers are examples; the business logic has been extracted into `lib/api/` for reuse
+
 ---
 
 ## Read First: Scope & Technology Assumptions
@@ -30,13 +47,14 @@ A **UX prototype and integration scaffold** for a "Commemorative Ticket" cart in
 
 ### Technology stack assumptions
 
-This prototype was built with **React, TypeScript, Next.js, and CSS Modules** because those are familiar prototyping tools. However:
+This prototype was built with **React, TypeScript, Next.js, and CSS Modules** because those are Kyle's prototyping tools. The production implementation will be in **Vue.js**:
 
-| Assumption | Reality |
-|------------|---------|
-| React/TypeScript | Many Tessitura clients use **Umbraco CMS**, vanilla JavaScript, or other frameworks. The React implementation may need to be rewritten in the client's actual stack. |
-| Next.js API routes | The client likely has existing backend patterns (C#/.NET with Umbraco, serverless functions, etc.). The API route stubs demonstrate the shape of requests/responses, not the implementation technology. |
-| CSS Modules | The client will have their own styling approach. The CSS provides visual reference but will likely be adapted to their design system. |
+| Prototype | Production |
+|-----------|------------|
+| React components | Vue.js components (rewrite needed — see `docs/COMPONENT_BEHAVIOR_SPEC.md`) |
+| Next.js API routes | Your existing backend (Nuxt server routes, Express, .NET, Umbraco controllers, etc.) |
+| CSS Modules | Your styling approach — the CSS is a visual reference |
+| TypeScript types, lib/ utilities | **These transfer directly** — pure TS, no framework dependencies |
 
 **What transfers regardless of stack:**
 - UX flow and state transitions (the behavior)

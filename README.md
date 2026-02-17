@@ -7,25 +7,28 @@ A **UX prototype and integration scaffold** for a commemorative ticket cart inte
 This repo demonstrates:
 - **UX flow**: Collapsed → design selection → shipping → success states
 - **Data contracts**: TypeScript types defining the shapes for cart, address, selections, and API requests/responses
-- **Integration patterns**: Example Tessitura and WWL (World Wide Logistics) integration points
+- **Integration patterns**: Tessitura and WWL (World Wide Logistics) integration points
+- **Business logic**: Extracted validation, pricing, and note-building utilities
 
-## Technology Note
+## Migration Status: React → Vue.js
 
-This prototype is built with **React, TypeScript, Next.js, and CSS Modules** as convenient prototyping tools. However, the actual implementation may need to be adapted to the client's technology stack (commonly Umbraco CMS with .NET, or other frameworks).
+The prototype was built in React/Next.js. The production implementation will be in **Vue.js**.
 
-**What transfers to any stack:**
-- The UX behavior (run the demo to see it)
-- Data contracts (`types/index.ts`)
-- API request/response shapes
-- Tessitura endpoint patterns
-- WWL payload structure
+The repo is structured so that the framework-agnostic layers transfer directly:
 
-**What may need rewrite:**
-- React component code
-- CSS (adapt to client's design system)
-- Backend implementation (adapt to client's server framework)
+| Layer | Status | Notes |
+|-------|--------|-------|
+| `types/index.ts` | Ready to use | Data contracts — no framework dependencies |
+| `lib/config/orgConfig.ts` | Ready to use | Org-specific configuration |
+| `lib/api/` | Ready to use | Validation, pricing, contribution notes — pure TS |
+| `lib/tessitura/` | Ready to use | Tessitura client interface + implementations |
+| `lib/wwl/` | Ready to use | WWL payload builder + client stub |
+| `components/` | Needs Vue rewrite | See `docs/COMPONENT_BEHAVIOR_SPEC.md` for blueprint |
+| `app/api/` | Example only | Next.js handlers — use `lib/api/` utilities from your own backend |
 
-See [docs/HANDOFF_FOR_JASON.md](docs/HANDOFF_FOR_JASON.md) for detailed integration notes.
+**Key documents:**
+- [docs/HANDOFF_FOR_JASON.md](docs/HANDOFF_FOR_JASON.md) — Integration handoff with full context
+- [docs/COMPONENT_BEHAVIOR_SPEC.md](docs/COMPONENT_BEHAVIOR_SPEC.md) — Framework-neutral blueprint for rebuilding in Vue
 
 ---
 
@@ -48,7 +51,7 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 ### What you'll see
 
 1. A fake cart page with 3 seats (Row B, Seats 13-15)
-2. The commemorative ticket module (red-bordered box)
+2. The commemorative ticket module (bordered box)
 3. Click "Add commemorative tickets" to expand
 4. Walk through Step 1 (design selection) and Step 2 (shipping)
 5. Click "Add to order" to see success state
@@ -60,14 +63,16 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 ## Project Structure
 
 ```
-├── components/
-│   ├── CommemorativeTicketModule/     ← The main module (React implementation)
-│   └── DetailsModal/                  ← Policy modal
-│
 ├── types/
 │   └── index.ts                       ← Data contracts (framework-agnostic)
 │
 ├── lib/
+│   ├── config/
+│   │   └── orgConfig.ts               ← All org-specific values (one-file rebrand)
+│   ├── api/
+│   │   ├── validation.ts              ← Request validation (framework-agnostic)
+│   │   ├── pricing.ts                 ← Price calculation (framework-agnostic)
+│   │   └── contributionNotes.ts       ← Tessitura notes builder (framework-agnostic)
 │   ├── tessitura/
 │   │   ├── tessituraClient.ts         ← Interface definition
 │   │   ├── realTessituraClient.ts     ← Placeholder implementation
@@ -76,14 +81,18 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 │       ├── wwlPayload.ts              ← Payload builder
 │       └── wwlClient.ts               ← Stub client
 │
-├── app/
-│   ├── api/                           ← Example API routes
-│   │   ├── cart/route.ts
-│   │   └── commemorative/add-to-order/route.ts
-│   └── cart/page.tsx                  ← Demo page (scaffolding only)
+├── components/                         ← React implementation (Vue rewrite needed)
+│   ├── CommemorativeTicketModule/
+│   └── DetailsModal/
+│
+├── app/                                ← Next.js demo scaffolding
+│   ├── api/                            ← Example API routes (use lib/api/ from your backend)
+│   └── cart/page.tsx                   ← Demo page
 │
 └── docs/
-    └── HANDOFF_FOR_JASON.md           ← Integration documentation
+    ├── HANDOFF_FOR_JASON.md            ← Integration handoff
+    ├── COMPONENT_BEHAVIOR_SPEC.md      ← Framework-neutral UI spec
+    └── REFERENCE_PUBLIC_THEATER.md     ← Archived original client values
 ```
 
 ---
@@ -155,19 +164,10 @@ Returns cart contents and address on file.
 
 Adds commemorative tickets as a donation line item.
 
-**Request:** selections, shipping address, total price  
+**Request:** selections, shipping address, total price
 **Response:** success status, contribution ID, line item summary
 
----
-
-## Integration Documentation
-
-See [docs/HANDOFF_FOR_JASON.md](docs/HANDOFF_FOR_JASON.md) for:
-- Technology stack assumptions
-- Tessitura integration points
-- WWL integration patterns
-- Integration checklist
-- File reference guide
+Business logic is in `lib/api/` — use those utilities from whatever backend framework you're running.
 
 ---
 
