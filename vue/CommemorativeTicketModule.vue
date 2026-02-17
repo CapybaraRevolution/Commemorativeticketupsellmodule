@@ -547,15 +547,38 @@ function getDesignColorClass(designId: string | null): string {
  * that, but the prefix is extra insurance for Umbraco embedding.
  */
 
-/* -- CSS custom property fallbacks -- */
+/*
+ * Design token layer.
+ *
+ * Every color used in this component resolves through a CSS custom property.
+ * If the Umbraco host page defines --color-primary (or any of these), it wins.
+ * If not, the fallback values here keep things looking presentable.
+ *
+ * This is the tokenization strategy Kyle wanted: swap the host page's
+ * custom properties and the whole module rebrands. No digging through
+ * individual style rules. — Tabs
+ *
+ * What IS tokenized: colors, font family, border radius.
+ * What is NOT tokenized: spacing (padding/margin/gap) and sizing (width/height).
+ * Those are structural layout values, not brand values. No client is going
+ * to ask for different padding. If they do, we'll deal with it then.
+ * (Kyle wanted to tokenize everything. I talked him down. Growth.)
+ */
 .ct-container {
+  /* Brand */
   --_primary: var(--color-primary, #3D5A80);
   --_primary-dark: var(--color-primary-dark, #2B4162);
+
+  /* Feedback */
   --_success: var(--color-success, #16a34a);
   --_success-light: var(--color-success-light, #dcfce7);
   --_success-border: var(--color-success-border, #16a34a);
+  --_error: var(--color-error, #dc2626);
+
+  /* Neutrals */
   --_white: var(--color-white, #ffffff);
   --_black: var(--color-black, #000000);
+  --_text: var(--color-text, #111827);
   --_gray-50: var(--color-gray-50, #f9fafb);
   --_gray-100: var(--color-gray-100, #f3f4f6);
   --_gray-200: var(--color-gray-200, #e5e7eb);
@@ -563,25 +586,34 @@ function getDesignColorClass(designId: string | null): string {
   --_gray-400: var(--color-gray-400, #9ca3af);
   --_gray-500: var(--color-gray-500, #6b7280);
   --_gray-600: var(--color-gray-600, #4b5563);
+
+  /* Design swatches */
   --_design-a: var(--color-design-a, #60a5fa);
   --_design-b: var(--color-design-b, #fb7185);
   --_design-c: var(--color-design-c, #fbbf24);
+
+  /* Typography */
+  --_font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+
+  /* Border radius */
+  --_radius: var(--radius-md, 0.375rem);
+  --_radius-full: var(--radius-full, 9999px);
 
   position: relative;
   background-color: var(--_white);
   border: 2px solid var(--_primary);
   padding: 1.5rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--_font-family);
   font-size: 1rem;
   line-height: 1.5;
-  color: #111827;
+  color: var(--_text);
   box-sizing: border-box;
 }
 .ct-container *, .ct-container *::before, .ct-container *::after { box-sizing: border-box; }
 
 /* Header */
 .ct-header-clickable { display: flex; gap: 1.5rem; align-items: center; cursor: pointer; }
-.ct-preview-image { flex-shrink: 0; width: 80px; height: 112px; background-color: var(--_gray-300); display: flex; align-items: center; justify-content: center; border-radius: 0.375rem; }
+.ct-preview-image { flex-shrink: 0; width: 80px; height: 112px; background-color: var(--_gray-300); display: flex; align-items: center; justify-content: center; border-radius: var(--_radius); }
 .ct-preview-icon { width: 28px; height: 28px; color: var(--_gray-500); }
 .ct-content { flex: 1; }
 .ct-content-padded { padding-right: 3rem; }
@@ -612,7 +644,7 @@ function getDesignColorClass(designId: string | null): string {
 
 /* Stepper */
 .ct-stepper { display: flex; justify-content: center; margin-bottom: 1.5rem; }
-.ct-stepper-pill { display: inline-flex; align-items: center; gap: 1rem; background-color: var(--_gray-100); border-radius: 9999px; padding: 0.75rem 1.5rem; }
+.ct-stepper-pill { display: inline-flex; align-items: center; gap: 1rem; background-color: var(--_gray-100); border-radius: var(--_radius-full); padding: 0.75rem 1.5rem; }
 .ct-step-item { display: flex; align-items: center; gap: 0.5rem; }
 .ct-step-number { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
 .ct-step-active { background-color: var(--_primary); color: var(--_white); }
@@ -628,7 +660,7 @@ function getDesignColorClass(designId: string | null): string {
 .ct-section-title-left { font-weight: 700; text-transform: uppercase; font-size: 0.875rem; margin-bottom: 0.75rem; text-align: left; }
 .ct-design-gallery { display: flex; gap: 1rem; justify-content: center; max-width: 500px; margin: 0 auto 1.5rem; }
 .ct-design-card { flex: 1; max-width: 140px; }
-.ct-design-preview { height: 128px; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; border-radius: 0.375rem; }
+.ct-design-preview { height: 128px; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; border-radius: var(--_radius); }
 .ct-design-a { background-color: var(--_design-a); }
 .ct-design-b { background-color: var(--_design-b); }
 .ct-design-c { background-color: var(--_design-c); }
@@ -641,8 +673,8 @@ function getDesignColorClass(designId: string | null): string {
 .ct-seat-selection { margin-bottom: 1.5rem; }
 .ct-seat-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
 .ct-seat-label { font-weight: 700; font-size: 0.875rem; width: 128px; flex-shrink: 0; }
-.ct-seat-select { flex: 1; max-width: 280px; border: 1px solid var(--_gray-300); padding: 0.5rem 0.75rem; background-color: var(--_white); font-size: 0.875rem; font-family: inherit; }
-.ct-seat-preview-chip { width: 40px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 0.375rem; }
+.ct-seat-select { flex: 1; max-width: 280px; border: 1px solid var(--_gray-300); padding: 0.5rem 0.75rem; background-color: var(--_white); font-size: 0.875rem; font-family: var(--_font-family); }
+.ct-seat-preview-chip { width: 40px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: var(--_radius); }
 .ct-seat-preview-icon { width: 16px; height: 16px; }
 .ct-icon-light { color: var(--_white); }
 .ct-icon-dark { color: var(--_gray-500); }
@@ -652,12 +684,12 @@ function getDesignColorClass(designId: string | null): string {
 .ct-checkbox-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0.5rem; }
 .ct-checkbox { width: 16px; height: 16px; accent-color: var(--_primary); }
 .ct-checkbox-text { font-size: 0.875rem; font-weight: 700; }
-.ct-message-input { width: 100%; border: 1px solid var(--_gray-300); padding: 0.5rem 0.75rem; font-size: 0.875rem; font-family: inherit; }
+.ct-message-input { width: 100%; border: 1px solid var(--_gray-300); padding: 0.5rem 0.75rem; font-size: 0.875rem; font-family: var(--_font-family); }
 .ct-message-helper { display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem; }
 .ct-helper-text { font-size: 0.75rem; color: var(--_gray-600); }
 
 /* Price Summary */
-.ct-price-summary { background-color: var(--_gray-50); padding: 0.75rem 1rem; margin-bottom: 1.5rem; border-radius: 0.375rem; }
+.ct-price-summary { background-color: var(--_gray-50); padding: 0.75rem 1rem; margin-bottom: 1.5rem; border-radius: var(--_radius); }
 .ct-price-text { font-size: 0.875rem; }
 .ct-price-bold { font-weight: 700; }
 .ct-price-muted { color: var(--_gray-600); }
@@ -666,9 +698,9 @@ function getDesignColorClass(designId: string | null): string {
 .ct-order-summary { margin-bottom: 1.5rem; }
 .ct-order-thumbnails { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.75rem; }
 .ct-order-thumbnail { width: 64px; }
-.ct-order-thumb-preview { height: 80px; margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: center; border-radius: 0.375rem; }
+.ct-order-thumb-preview { height: 80px; margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: center; border-radius: var(--_radius); }
 .ct-order-thumb-label { font-size: 0.75rem; text-align: center; color: var(--_gray-600); }
-.ct-order-summary-box { background-color: var(--_gray-50); padding: 0.75rem 1rem; border-radius: 0.375rem; }
+.ct-order-summary-box { background-color: var(--_gray-50); padding: 0.75rem 1rem; border-radius: var(--_radius); }
 .ct-order-summary-list { list-style: none; padding: 0; margin: 0 0 0.5rem 0; }
 .ct-order-summary-list-item { font-size: 0.875rem; padding: 0.25rem 0; display: flex; align-items: center; gap: 0.5rem; }
 .ct-order-summary-list-item::before { content: '•'; color: var(--_gray-400); font-weight: 700; }
@@ -684,7 +716,7 @@ function getDesignColorClass(designId: string | null): string {
 .ct-address-box { background-color: var(--_gray-50); padding: 0.75rem; border-radius: 0.375rem; border: 1px solid var(--_gray-200); font-size: 0.875rem; margin-top: 0.5rem; }
 .ct-address-name { font-weight: 700; }
 .ct-address-form { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem; }
-.ct-address-input { width: 100%; border: 1px solid var(--_gray-300); padding: 0.5rem 0.75rem; font-size: 0.875rem; font-family: inherit; }
+.ct-address-input { width: 100%; border: 1px solid var(--_gray-300); padding: 0.5rem 0.75rem; font-size: 0.875rem; font-family: var(--_font-family); }
 .ct-address-row { display: flex; gap: 0.75rem; }
 .ct-address-city { flex: 1; }
 .ct-address-state { width: 96px; }
@@ -700,7 +732,7 @@ function getDesignColorClass(designId: string | null): string {
 .ct-success-line { font-size: 0.875rem; margin-bottom: 0.25rem; }
 
 /* Error */
-.ct-error { color: red; margin-bottom: 1rem; font-size: 0.875rem; }
+.ct-error { color: var(--_error); margin-bottom: 1rem; font-size: 0.875rem; }
 
 /* Loading */
 .ct-loading-overlay { position: absolute; inset: 0; background-color: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 10; }

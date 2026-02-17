@@ -71,22 +71,66 @@ document.querySelector('#commemorative-ticket-module')
   })
 ```
 
-## Theming
+## Theming / Design Tokens
 
-The components use CSS custom properties with fallbacks. If your Umbraco page defines these, the module will pick them up:
+Every color in the components resolves through CSS custom properties. If your Umbraco page defines them, the module rebrands automatically. If not, fallback values keep it looking clean.
 
+**Brand tokens:**
 ```css
 :root {
-  --color-primary: #3D5A80;      /* Module border, buttons, accents */
-  --color-primary-dark: #2B4162;  /* Button hover */
-  --color-success: #16a34a;       /* Success state */
-  --color-design-a: #60a5fa;      /* Design A preview color */
-  --color-design-b: #fb7185;      /* Design B preview color */
-  --color-design-c: #fbbf24;      /* Design C preview color */
+  --color-primary: #3D5A80;       /* Module border, buttons, active stepper, accents */
+  --color-primary-dark: #2B4162;  /* Button hover states */
 }
 ```
 
-If you don't define them, the fallback values above are used.
+**Feedback tokens:**
+```css
+:root {
+  --color-success: #16a34a;       /* Success banner, completed stepper */
+  --color-success-light: #dcfce7; /* Success banner background */
+  --color-success-border: #16a34a;/* Success banner border */
+  --color-error: #dc2626;         /* Error message text */
+  --color-warning-bg: #fef3c7;    /* "Not valid for admission" box background */
+  --color-warning-border: #f59e0b;/* Warning box border */
+  --color-warning-text: #92400e;  /* Warning box text */
+}
+```
+
+**Neutral tokens:**
+```css
+:root {
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-text: #111827;          /* Base text color */
+  --color-gray-50: #f9fafb;      /* Subtle backgrounds */
+  --color-gray-100: #f3f4f6;     /* Stepper pill background */
+  --color-gray-200: #e5e7eb;     /* Borders, dividers */
+  --color-gray-300: #d1d5db;     /* Input borders, inactive chips */
+  --color-gray-400: #9ca3af;     /* Placeholder text, bullet dots */
+  --color-gray-500: #6b7280;     /* Icon colors */
+  --color-gray-600: #4b5563;     /* Secondary text */
+}
+```
+
+**Design swatch tokens:**
+```css
+:root {
+  --color-design-a: #60a5fa;     /* Design A preview color */
+  --color-design-b: #fb7185;     /* Design B preview color */
+  --color-design-c: #fbbf24;     /* Design C preview color */
+}
+```
+
+**Typography & shape tokens:**
+```css
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --radius-md: 0.375rem;         /* Card corners, input corners */
+  --radius-full: 9999px;         /* Stepper pill, step number circles */
+}
+```
+
+Define any subset of these on your page; the module picks up what's there and falls back for the rest.
 
 ## Dependencies
 
