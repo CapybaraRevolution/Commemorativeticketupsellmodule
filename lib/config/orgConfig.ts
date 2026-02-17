@@ -105,14 +105,48 @@ export const ORG_CONFIG = {
  *
  * Kyle's instinct was three options — classic product design thinking.
  * Enough choice to feel personalized, not so many that it's paralyzing.
- * The names and descriptions are generic here; a real deployment would
- * have actual artwork and marketing copy.
+ *
+ * The module supports 1–4+ designs. The gallery layout flex-wraps, so
+ * it adapts whether a client wants two designs or four. The array length
+ * IS the config — add a design here, it appears in the module.
+ *
+ * Each design can have:
+ * - imageUrl: path to real artwork (when the client provides it)
+ * - fallbackColor: colored placeholder (what we use until artwork arrives)
+ *
+ * Client artwork should be placed in assets/designs/ in ticket aspect
+ * ratio (~2:3 portrait). See assets/designs/README.md for specs.
+ *
+ * Kyle asked "what if a client wants six designs?" I said the layout
+ * handles it, but at some point you're giving someone too many choices.
+ * That's a product decision, not a technical one. — Tabs
  */
 export const DESIGN_OPTIONS = [
-  { id: 'design-a', name: 'Design A', description: 'Season design', available: true },
-  { id: 'design-b', name: 'Design B', description: 'Classic', available: true },
-  { id: 'design-c', name: 'Design C', description: 'Limited edition', available: true },
-] as const;
+  {
+    id: 'design-a',
+    name: 'Design A',
+    description: 'Season design',
+    // imageUrl: '/assets/designs/design-a.png',  // Uncomment when artwork is available
+    fallbackColor: '#60a5fa',
+    available: true,
+  },
+  {
+    id: 'design-b',
+    name: 'Design B',
+    description: 'Classic',
+    // imageUrl: '/assets/designs/design-b.png',
+    fallbackColor: '#fb7185',
+    available: true,
+  },
+  {
+    id: 'design-c',
+    name: 'Design C',
+    description: 'Limited edition',
+    // imageUrl: '/assets/designs/design-c.png',
+    fallbackColor: '#fbbf24',
+    available: true,
+  },
+];
 
 // =============================================================================
 // Demo Cart Data

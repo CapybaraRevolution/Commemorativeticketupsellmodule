@@ -248,13 +248,32 @@ function handleRemove() {
 // Design color helpers
 // ============================================================================
 
-function getDesignColorClass(designId: string | null): string {
-  switch (designId) {
-    case 'design-a': return 'ct-design-a'
-    case 'design-b': return 'ct-design-b'
-    case 'design-c': return 'ct-design-c'
-    default: return 'ct-design-none'
+/**
+ * Get the design object by ID.
+ * Used to look up imageUrl and fallbackColor for rendering.
+ */
+function getDesign(designId: string | null) {
+  return designs.find(d => d.id === designId) || null
+}
+
+/**
+ * Build the inline style for a design preview.
+ *
+ * If the design has a fallbackColor, use it as the background.
+ * The template handles rendering the actual <img> when imageUrl exists.
+ *
+ * Kyle wanted the color classes hardcoded (ct-design-a, ct-design-b...).
+ * I pointed out that breaks the moment a client has 4 designs or uses
+ * different IDs. So now it's dynamic: background color comes from the
+ * design config, not from a CSS class lookup. One less thing to update
+ * when onboarding a new client. — Tabs
+ */
+function getDesignPreviewStyle(designId: string | null): Record<string, string> {
+  const design = getDesign(designId)
+  if (design?.fallbackColor) {
+    return { backgroundColor: design.fallbackColor }
   }
+  return { backgroundColor: 'var(--_gray-300)' }
 }
 </script>
 
@@ -322,13 +341,16 @@ function getDesignColorClass(designId: string | null): string {
         </div>
       </div>
 
-      <!-- Design gallery -->
+      <!-- Design gallery — supports 1–4+ designs, renders images when available -->
       <div>
         <h4 class="ct-section-title">Available Designs</h4>
         <div class="ct-design-gallery">
           <div v-for="design in designs" :key="design.id" class="ct-design-card">
-            <div :class="['ct-design-preview', getDesignColorClass(design.id)]">
-              <svg class="ct-design-preview-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <div class="ct-design-preview" :style="design.imageUrl ? {} : getDesignPreviewStyle(design.id)">
+              <!-- Real artwork when available -->
+              <img v-if="design.imageUrl" :src="design.imageUrl" :alt="design.name" class="ct-design-image" />
+              <!-- Colored placeholder with icon when no artwork yet -->
+              <svg v-else class="ct-design-preview-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
             </div>
             <p class="ct-design-name">{{ design.name }}</p>
             <p class="ct-design-description">{{ design.description }}</p>
@@ -353,8 +375,12 @@ function getDesignColorClass(designId: string | null): string {
               {{ design.name }} — {{ design.description }}
             </option>
           </select>
-          <div :class="['ct-seat-preview-chip', getDesignColorClass(state.seatSelections[`${seat.row}-${seat.seatNumber}`])]">
-            <svg :class="['ct-seat-preview-icon', state.seatSelections[`${seat.row}-${seat.seatNumber}`] ? 'ct-icon-light' : 'ct-icon-dark']" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          <div class="ct-seat-preview-chip" :style="getDesignPreviewStyle(state.seatSelections[`${seat.row}-${seat.seatNumber}`] || null)">
+            <img v-if="getDesign(state.seatSelections[`${seat.row}-${seat.seatNumber}`])?.imageUrl"
+              :src="getDesign(state.seatSelections[`${seat.row}-${seat.seatNumber}`])?.imageUrl"
+              :alt="getDesign(state.seatSelections[`${seat.row}-${seat.seatNumber}`])?.name || ''"
+              class="ct-seat-chip-image" />
+            <svg v-else :class="['ct-seat-preview-icon', state.seatSelections[`${seat.row}-${seat.seatNumber}`] ? 'ct-icon-light' : 'ct-icon-dark']" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
           </div>
         </div>
       </div>
@@ -440,8 +466,12 @@ function getDesignColorClass(designId: string | null): string {
         <h4 class="ct-section-title">Your Order</h4>
         <div class="ct-order-thumbnails">
           <div v-for="seat in selectedSeats" :key="`thumb-${seat.row}-${seat.seatNumber}`" class="ct-order-thumbnail">
-            <div :class="['ct-order-thumb-preview', getDesignColorClass(state.seatSelections[`${seat.row}-${seat.seatNumber}`])]">
-              <svg style="width:20px;height:20px;color:white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <div class="ct-order-thumb-preview" :style="getDesignPreviewStyle(state.seatSelections[`${seat.row}-${seat.seatNumber}`])">
+              <img v-if="getDesign(state.seatSelections[`${seat.row}-${seat.seatNumber}`])?.imageUrl"
+                :src="getDesign(state.seatSelections[`${seat.row}-${seat.seatNumber}`])?.imageUrl"
+                :alt="getDesign(state.seatSelections[`${seat.row}-${seat.seatNumber}`])?.name || ''"
+                class="ct-thumb-image" />
+              <svg v-else style="width:20px;height:20px;color:white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
             </div>
             <p class="ct-order-thumb-label">Row {{ seat.row }} {{ seat.seatNumber }}</p>
           </div>
@@ -675,13 +705,13 @@ function getDesignColorClass(designId: string | null): string {
 /* Design Gallery */
 .ct-section-title { font-weight: 700; text-transform: uppercase; font-size: var(--_text-xs); margin-bottom: var(--_space-3); text-align: center; }
 .ct-section-title-left { font-weight: 700; text-transform: uppercase; font-size: var(--_text-sm); margin-bottom: var(--_space-3); text-align: left; }
-.ct-design-gallery { display: flex; gap: var(--_space-4); justify-content: center; max-width: 500px; margin: 0 auto var(--_space-6); }
-.ct-design-card { flex: 1; max-width: 140px; }
-.ct-design-preview { height: 128px; margin-bottom: var(--_space-2); display: flex; align-items: center; justify-content: center; border-radius: var(--_radius); }
-.ct-design-a { background-color: var(--_design-a); }
-.ct-design-b { background-color: var(--_design-b); }
-.ct-design-c { background-color: var(--_design-c); }
-.ct-design-none { background-color: var(--_gray-300); }
+/* Gallery wraps for 1–4+ designs. Cards have a min-width so they don't
+   get too squished, and flex-wrap handles overflow to a second row. */
+.ct-design-gallery { display: flex; gap: var(--_space-4); justify-content: center; flex-wrap: wrap; max-width: 620px; margin: 0 auto var(--_space-6); }
+.ct-design-card { flex: 0 1 140px; max-width: 140px; min-width: 100px; }
+.ct-design-preview { height: 128px; margin-bottom: var(--_space-2); display: flex; align-items: center; justify-content: center; border-radius: var(--_radius); overflow: hidden; position: relative; }
+/* Image rendering — fills the preview area, crops to fit ticket aspect ratio */
+.ct-design-image { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ct-design-preview-icon { width: 32px; height: 32px; color: var(--_white); }
 .ct-design-name { font-size: var(--_text-xs); font-weight: 700; text-align: center; }
 .ct-design-description { font-size: var(--_text-xs); color: var(--_gray-600); text-align: center; }
@@ -691,7 +721,8 @@ function getDesignColorClass(designId: string | null): string {
 .ct-seat-row { display: flex; align-items: center; gap: var(--_space-4); margin-bottom: var(--_space-3); }
 .ct-seat-label { font-weight: 700; font-size: var(--_text-sm); width: 128px; flex-shrink: 0; }
 .ct-seat-select { flex: 1; max-width: 280px; border: 1px solid var(--_gray-300); padding: var(--_space-2) var(--_space-3); background-color: var(--_white); font-size: var(--_text-sm); font-family: var(--_font-family); }
-.ct-seat-preview-chip { width: 40px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: var(--_radius); }
+.ct-seat-preview-chip { width: 40px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: var(--_radius); overflow: hidden; }
+.ct-seat-chip-image { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ct-seat-preview-icon { width: 16px; height: 16px; }
 .ct-icon-light { color: var(--_white); }
 .ct-icon-dark { color: var(--_gray-500); }
@@ -715,7 +746,8 @@ function getDesignColorClass(designId: string | null): string {
 .ct-order-summary { margin-bottom: var(--_space-6); }
 .ct-order-thumbnails { display: flex; gap: var(--_space-2); justify-content: center; margin-bottom: var(--_space-3); }
 .ct-order-thumbnail { width: 64px; }
-.ct-order-thumb-preview { height: 80px; margin-bottom: var(--_space-1); display: flex; align-items: center; justify-content: center; border-radius: var(--_radius); }
+.ct-order-thumb-preview { height: 80px; margin-bottom: var(--_space-1); display: flex; align-items: center; justify-content: center; border-radius: var(--_radius); overflow: hidden; }
+.ct-thumb-image { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ct-order-thumb-label { font-size: var(--_text-xs); text-align: center; color: var(--_gray-600); }
 .ct-order-summary-box { background-color: var(--_gray-50); padding: var(--_space-3) var(--_space-4); border-radius: var(--_radius); }
 .ct-order-summary-list { list-style: none; padding: 0; margin: 0 0 var(--_space-2) 0; }

@@ -78,9 +78,24 @@ export interface Design {
   name: string;
   /** Description/subtitle (e.g., "Season design") */
   description: string;
-  /** URL to design preview image */
+  /**
+   * URL or path to the design preview image.
+   *
+   * When present, the module renders the actual artwork instead of a
+   * colored placeholder. Images should be in ticket aspect ratio
+   * (roughly 2:3 portrait — see assets/designs/README.md for specs).
+   *
+   * When absent or empty, the module falls back to a colored placeholder
+   * using the design's fallbackColor.
+   */
   imageUrl?: string;
-  /** Whether this design is currently available */
+  /**
+   * Fallback background color when no image is available.
+   * CSS color value (hex, rgb, hsl, etc.)
+   * This is what the module shows during prototyping before real artwork arrives.
+   */
+  fallbackColor?: string;
+  /** Whether this design is currently available for selection */
   available: boolean;
 }
 
