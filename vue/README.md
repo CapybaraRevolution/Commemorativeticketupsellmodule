@@ -121,10 +121,33 @@ Every color in the components resolves through CSS custom properties. If your Um
 }
 ```
 
-**Typography & shape tokens:**
+**Spacing tokens:**
+```css
+:root {
+  --spacing-1: 0.25rem;          /* 4px  — tight gaps, helper text margins */
+  --spacing-2: 0.5rem;           /* 8px  — input padding, checkbox gaps */
+  --spacing-3: 0.75rem;          /* 12px — section margins, button padding */
+  --spacing-4: 1rem;             /* 16px — action gaps, default spacing */
+  --spacing-6: 1.5rem;           /* 24px — container padding, section spacing */
+  --spacing-8: 2rem;             /* 32px — modal footer button padding */
+}
+```
+
+**Typography tokens:**
 ```css
 :root {
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.75rem;       /* 12px — helper text, design labels */
+  --font-size-sm: 0.875rem;      /* 14px — body text, inputs, buttons */
+  --font-size-lg: 1.125rem;      /* 18px — price display, modal section titles */
+  --font-size-xl: 1.25rem;       /* 20px — module title */
+  --font-size-2xl: 1.5rem;       /* 24px — modal title */
+}
+```
+
+**Shape tokens:**
+```css
+:root {
   --radius-md: 0.375rem;         /* Card corners, input corners */
   --radius-full: 9999px;         /* Stepper pill, step number circles */
 }
