@@ -12,20 +12,28 @@ You'll see me in the inline comments throughout the codebase, explaining why we 
 
 ### On the React-to-Vue situation
 
-So — we built this prototype in React and TypeScript because that's what Kyle and I work in. Then Kyle had a call with you and learned you're working in Vue.js. Which means the React components need to be rewritten. But here's the thing: Kyle had pushed early on to keep the types, config, integration scaffolds, and business logic completely separated from the React layer. At the time I thought it was overkill for a prototype. Now we're migrating frameworks and every one of those files transfers directly without changes. He's been insufferable about it. Rightfully so.
+We built this prototype in React because that's what Kyle and I work in. Then Kyle talked to you and learned you're working in Vue 3, embedded directly in Umbraco pages. Two things happened:
 
-**What you can use as-is (no changes needed):**
+1. Kyle's early decision to keep types, config, and business logic completely separated from the React layer paid off immediately — all of `lib/` and `types/` transfers without changes. He's been insufferable about this. Rightfully so.
+
+2. Kyle wanted to scrap the React version entirely and rebuild everything in Vue. I pushed back: you embed Vue components in Umbraco pages, you don't run a standalone Vue app. Building a full Vue demo application would be scaffolding for scaffolding. So instead, we built the actual Vue 3 components you need *and* kept the React demo running as a clickable UX spec.
+
+**What's in `vue/` (the components you actually use):**
+- `vue/CommemorativeTicketModule.vue` — the full module, Vue 3 Composition API with `<script setup>`
+- `vue/DetailsModal.vue` — the policy modal
+- `vue/mount.ts` — example showing how to mount these on an Umbraco page
+- `vue/README.md` — usage guide, theming, event handling
+
+**What's in `lib/` and `types/` (use directly, no changes needed):**
 - `types/index.ts` — all data contracts
 - `lib/config/orgConfig.ts` — org-specific configuration
+- `lib/api/` — extracted validation, pricing, and business logic utilities
 - `lib/tessitura/` — Tessitura client interface and implementations
 - `lib/wwl/` — WWL payload builder and client stub
-- `lib/api/` — extracted validation, pricing, and business logic utilities
 
-**What needs rewriting in Vue:**
-- `components/CommemorativeTicketModule/` — the main module (see `docs/COMPONENT_BEHAVIOR_SPEC.md` for a framework-neutral blueprint)
-- `components/DetailsModal/` — the policy modal
-- CSS — adapt to your styling approach
-- API routes — the Next.js handlers are examples; the business logic has been extracted into `lib/api/` for reuse
+**What's still in React (the running demo — reference only):**
+- `app/` + `components/` — run `npm run dev` to see the UX in action
+- The behavior should match `docs/COMPONENT_BEHAVIOR_SPEC.md` and the Vue components
 
 ---
 
@@ -351,28 +359,34 @@ docs/REFERENCE_PUBLIC_THEATER.md        ← Archived original client values
 app/globals.css                         ← CSS custom properties (color palette here)
 ```
 
-### Framework-agnostic (reference for any implementation)
+### Vue 3 components (what you use)
+
+```
+vue/
+├── CommemorativeTicketModule.vue  ← The main module (Vue 3 Composition API)
+├── DetailsModal.vue               ← Policy modal
+├── mount.ts                       ← Umbraco embedding example
+└── README.md                      ← Usage guide
+```
+
+### Framework-agnostic (shared by both React demo and Vue components)
 
 ```
 types/index.ts                          ← Data shapes and contracts
+lib/config/orgConfig.ts                 ← Org-specific configuration
+lib/api/                                ← Validation, pricing, notes builder
 lib/tessitura/tessituraClient.ts        ← Tessitura interface definition
 lib/wwl/wwlPayload.ts                   ← WWL payload structure + variant mapping
 ```
 
-### React implementation (may need rewrite)
+### React demo (run it to see the behavior)
 
 ```
-components/
-├── CommemorativeTicketModule/
-│   ├── CommemorativeTicketModule.tsx   ← Main component (React-specific)
-│   ├── CommemorativeTicketModule.module.css
-│   └── index.ts
-└── DetailsModal/
-    ├── DetailsModal.tsx                ← Modal component (React-specific)
-    └── DetailsModal.module.css
+components/                             ← React-specific (visual reference only)
+app/                                    ← Next.js pages and API routes
 ```
 
-### Integration scaffolds (adapt to client's backend)
+### Integration scaffolds
 
 ```
 lib/tessitura/realTessituraClient.ts    ← Example Tessitura calls (search: INTEGRATION NOTE)
@@ -385,13 +399,11 @@ app/api/commemorative/add-to-order/route.ts ← Example endpoint (search: INTEGR
 
 ## Summary
 
-This prototype demonstrates **what** the module should do (UX behavior, data flow, integration points) rather than **how** it must be built. The React/TypeScript implementation is one way to build it; the client may need a different approach based on their existing technology stack.
+This repo has two layers:
 
-The key transferable assets are:
-- The UX flow (run the demo)
-- The org config pattern (`lib/config/orgConfig.ts`)
-- The data contracts (`types/index.ts`)
-- The Tessitura endpoint intentions
-- The WWL payload structure
+1. **The Vue components** (`vue/`) — what you embed in Umbraco. Production-ready Vue 3, Composition API, scoped styles, self-contained.
+2. **The React demo** — a running UX spec. `npm run dev` and click through it to see exactly how the module behaves.
 
-Everything else can be adapted to fit the client's actual environment.
+Both share the same framework-agnostic foundation: types, config, business logic, Tessitura interface, and WWL payload builder.
+
+Kyle and Tabs argued about whether to keep both or go all-Vue. The answer: both serve a purpose, neither is redundant. The Vue components are the deliverable. The React demo is the specification.
