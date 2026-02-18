@@ -117,23 +117,31 @@ const state = reactive({
 })
 
 // ============================================================================
-// Field Validation
+// Field Validation — Three-Tier States
 //
-// Each field tracks: touched (has user interacted?), valid, errorMessage.
-// Validation runs on blur — when the user clicks or tabs away from a field.
-// This was Kyle's call from the start: "when they click out, that's when
-// it happens." He was very specific about this. I would have overcomplicated
-// it. He kept it simple. — Tabs
+// Validation runs on blur (Kyle's call from the start).
+//
+// Three visual tiers:
+// - 'warning' (amber): user touched the field but left it empty.
+//   "Hey, you skipped this." Not an error — they might come back to it.
+// - 'error' (red): user typed something the system will reject.
+//   Bad ZIP format, name too short. Actual invalid input.
+// - 'valid' (green): field passes validation.
+// - null: untouched, no feedback shown.
+//
+// Kyle's logic: "don't show red unless they've given you something wrong.
+// Empty isn't wrong, it's incomplete." Smart distinction. — Tabs
 // ============================================================================
 
 type FieldName = 'name' | 'street1' | 'city' | 'state' | 'postalCode'
+type FieldStatus = 'warning' | 'error' | 'valid' | null
 
-const fieldState = reactive<Record<FieldName, { touched: boolean; valid: boolean | null; error: string }>>({
-  name:       { touched: false, valid: null, error: '' },
-  street1:    { touched: false, valid: null, error: '' },
-  city:       { touched: false, valid: null, error: '' },
-  state:      { touched: false, valid: null, error: '' },
-  postalCode: { touched: false, valid: null, error: '' },
+const fieldState = reactive<Record<FieldName, { touched: boolean; status: FieldStatus; message: string }>>({
+  name:       { touched: false, status: null, message: '' },
+  street1:    { touched: false, status: null, message: '' },
+  city:       { touched: false, status: null, message: '' },
+  state:      { touched: false, status: null, message: '' },
+  postalCode: { touched: false, status: null, message: '' },
 })
 
 const ZIP_REGEX = /^\d{5}(-\d{4})?$/
@@ -144,48 +152,55 @@ function validateField(field: FieldName) {
 
   if (field === 'postalCode') {
     if (!val) {
-      fieldState[field].valid = false
-      fieldState[field].error = 'This field is needed for shipping'
+      fieldState[field].status = 'warning'
+      fieldState[field].message = "You'll need a ZIP code for shipping"
     } else if (!ZIP_REGEX.test(val)) {
-      fieldState[field].valid = false
-      fieldState[field].error = "That doesn't look like a valid ZIP code — US ZIPs are 5 digits (or 5+4 like 10001-1234)"
+      fieldState[field].status = 'error'
+      fieldState[field].message = "That doesn't look like a valid ZIP code — US ZIPs are 5 digits (or 5+4 like 10001-1234)"
     } else {
-      fieldState[field].valid = true
-      fieldState[field].error = ''
+      fieldState[field].status = 'valid'
+      fieldState[field].message = ''
     }
-  } else if (field === 'name' && val.length > 0 && val.length < 2) {
-    fieldState[field].valid = false
-    fieldState[field].error = 'Name should be at least 2 characters'
-  } else if (field === 'state') {
-    // State is a dropdown — only invalid if not selected
+  } else if (field === 'name') {
     if (!val) {
-      fieldState[field].valid = false
-      fieldState[field].error = 'Please select a state'
+      fieldState[field].status = 'warning'
+      fieldState[field].message = "We'll need a name for shipping"
+    } else if (val.length < 2) {
+      fieldState[field].status = 'error'
+      fieldState[field].message = 'Name should be at least 2 characters'
     } else {
-      fieldState[field].valid = true
-      fieldState[field].error = ''
+      fieldState[field].status = 'valid'
+      fieldState[field].message = ''
+    }
+  } else if (field === 'state') {
+    if (!val) {
+      fieldState[field].status = 'warning'
+      fieldState[field].message = 'Please select a state'
+    } else {
+      fieldState[field].status = 'valid'
+      fieldState[field].message = ''
     }
   } else {
-    // Required text fields: name, street1, city
     if (!val) {
-      fieldState[field].valid = false
-      fieldState[field].error = 'This field is needed for shipping'
+      fieldState[field].status = 'warning'
+      fieldState[field].message = "This field is needed for shipping"
     } else {
-      fieldState[field].valid = true
-      fieldState[field].error = ''
+      fieldState[field].status = 'valid'
+      fieldState[field].message = ''
     }
   }
 }
 
 function resetFieldValidation() {
   for (const key of Object.keys(fieldState) as FieldName[]) {
-    fieldState[key] = { touched: false, valid: null, error: '' }
+    fieldState[key] = { touched: false, status: null, message: '' }
   }
 }
 
 function fieldClass(field: FieldName): string {
-  if (!fieldState[field].touched || fieldState[field].valid === null) return 'ct-address-input'
-  if (fieldState[field].valid === false) return 'ct-address-input ct-field-error'
+  if (!fieldState[field].touched || fieldState[field].status === null) return 'ct-address-input'
+  if (fieldState[field].status === 'error') return 'ct-address-input ct-field-error'
+  if (fieldState[field].status === 'warning') return 'ct-address-input ct-field-warning'
   return 'ct-address-input ct-field-valid'
 }
 
@@ -646,11 +661,12 @@ function getDesignPreviewStyle(designId: string | null): Record<string, string> 
                     <div class="ct-input-container">
                       <input :value="state.customAddress.name" @input="state.customAddress.name = ($event.target as HTMLInputElement).value" @blur="validateField('name')"
                         type="text" placeholder="Name" :class="fieldClass('name')" aria-label="Name"
-                        :aria-invalid="fieldState.name.valid === false" :aria-describedby="fieldState.name.error ? 'field-error-name' : undefined" />
-                      <svg v-if="fieldState.name.valid === false" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      <svg v-else-if="fieldState.name.valid === true" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        :aria-invalid="fieldState.name.status === 'error' || fieldState.name.status === 'warning'" :aria-describedby="fieldState.name.message ? 'field-error-name' : undefined" />
+                      <svg v-if="fieldState.name.status === 'error'" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                      <svg v-else-if="fieldState.name.status === 'warning'" class="ct-field-icon ct-field-icon-warning" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                      <svg v-else-if="fieldState.name.status === 'valid'" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
-                    <p v-if="fieldState.name.error" :id="'field-error-name'" class="ct-field-error-text" role="alert">{{ fieldState.name.error }}</p>
+                    <p v-if="fieldState.name.message" :id="'field-error-name'" :class="fieldState.name.status === 'warning' ? 'ct-field-warning-text' : 'ct-field-error-text'" role="alert">{{ fieldState.name.message }}</p>
                   </div>
 
                   <!-- Address Line 1 (with autocomplete dropdown) -->
@@ -658,18 +674,18 @@ function getDesignPreviewStyle(designId: string | null): Record<string, string> 
                     <div class="ct-input-container">
                       <input :value="state.customAddress.street1" @input="handleAddressInput(($event.target as HTMLInputElement).value)" @blur="() => { validateField('street1'); setTimeout(() => showAutocomplete = false, 200) }"
                         type="text" placeholder="Address Line 1" :class="fieldClass('street1')" aria-label="Address line 1"
-                        :aria-invalid="fieldState.street1.valid === false" :aria-describedby="fieldState.street1.error ? 'field-error-street1' : undefined"
+                        :aria-invalid="fieldState.street1.status === 'error' || fieldState.street1.status === 'warning'" :aria-describedby="fieldState.street1.message ? 'field-error-street1' : undefined"
                         autocomplete="off" />
-                      <svg v-if="fieldState.street1.valid === false" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      <svg v-else-if="fieldState.street1.valid === true" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <svg v-if="fieldState.street1.status === 'error'" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                      <svg v-else-if="fieldState.street1.status === 'warning'" class="ct-field-icon ct-field-icon-warning" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                      <svg v-else-if="fieldState.street1.status === 'valid'" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
-                    <!-- Autocomplete suggestions -->
                     <ul v-if="showAutocomplete && autocompleteSuggestions.length > 0" class="ct-autocomplete-dropdown" role="listbox">
                       <li v-for="(result, i) in autocompleteSuggestions" :key="i" class="ct-autocomplete-item" role="option" @mousedown.prevent="selectAutocompleteResult(result)">
                         {{ result.street1 }}, {{ result.city }}, {{ result.state }} {{ result.postalCode }}
                       </li>
                     </ul>
-                    <p v-if="fieldState.street1.error" :id="'field-error-street1'" class="ct-field-error-text" role="alert">{{ fieldState.street1.error }}</p>
+                    <p v-if="fieldState.street1.message" :id="'field-error-street1'" :class="fieldState.street1.status === 'warning' ? 'ct-field-warning-text' : 'ct-field-error-text'" role="alert">{{ fieldState.street1.message }}</p>
                   </div>
 
                   <!-- Address Line 2 (optional, no validation) -->
@@ -682,22 +698,23 @@ function getDesignPreviewStyle(designId: string | null): Record<string, string> 
                       <div class="ct-input-container">
                         <input :value="state.customAddress.city" @input="state.customAddress.city = ($event.target as HTMLInputElement).value" @blur="validateField('city')"
                           type="text" placeholder="City" :class="fieldClass('city')" aria-label="City"
-                          :aria-invalid="fieldState.city.valid === false" />
-                        <svg v-if="fieldState.city.valid === false" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        <svg v-else-if="fieldState.city.valid === true" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          :aria-invalid="fieldState.city.status === 'error' || fieldState.city.status === 'warning'" />
+                        <svg v-if="fieldState.city.status === 'error'" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                        <svg v-else-if="fieldState.city.status === 'warning'" class="ct-field-icon ct-field-icon-warning" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                        <svg v-else-if="fieldState.city.status === 'valid'" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       </div>
-                      <p v-if="fieldState.city.error" class="ct-field-error-text" role="alert">{{ fieldState.city.error }}</p>
+                      <p v-if="fieldState.city.message" :class="fieldState.city.status === 'warning' ? 'ct-field-warning-text' : 'ct-field-error-text'" role="alert">{{ fieldState.city.message }}</p>
                     </div>
 
                     <!-- State (dropdown) -->
                     <div class="ct-field-wrapper ct-address-state-wrap">
                       <select v-model="state.customAddress.state" @change="validateField('state')" @blur="validateField('state')"
-                        :class="[fieldState.state.touched && fieldState.state.valid === false ? 'ct-seat-select ct-field-error' : fieldState.state.valid === true ? 'ct-seat-select ct-field-valid' : 'ct-seat-select']"
+                        :class="[fieldState.state.status === 'error' ? 'ct-seat-select ct-field-error' : fieldState.state.status === 'warning' ? 'ct-seat-select ct-field-warning' : fieldState.state.status === 'valid' ? 'ct-seat-select ct-field-valid' : 'ct-seat-select']"
                         aria-label="State">
                         <option value="" disabled>State</option>
                         <option v-for="s in US_STATES" :key="s.value" :value="s.value">{{ s.label }}</option>
                       </select>
-                      <p v-if="fieldState.state.error" class="ct-field-error-text" role="alert">{{ fieldState.state.error }}</p>
+                      <p v-if="fieldState.state.message" :class="fieldState.state.status === 'warning' ? 'ct-field-warning-text' : 'ct-field-error-text'" role="alert">{{ fieldState.state.message }}</p>
                     </div>
 
                     <!-- ZIP -->
@@ -705,11 +722,12 @@ function getDesignPreviewStyle(designId: string | null): Record<string, string> 
                       <div class="ct-input-container">
                         <input :value="state.customAddress.postalCode" @input="state.customAddress.postalCode = ($event.target as HTMLInputElement).value" @blur="validateField('postalCode')"
                           type="text" placeholder="ZIP" inputmode="numeric" :class="fieldClass('postalCode')" aria-label="ZIP code"
-                          :aria-invalid="fieldState.postalCode.valid === false" :aria-describedby="fieldState.postalCode.error ? 'field-error-zip' : undefined" />
-                        <svg v-if="fieldState.postalCode.valid === false" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        <svg v-else-if="fieldState.postalCode.valid === true" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          :aria-invalid="fieldState.postalCode.status === 'error' || fieldState.postalCode.status === 'warning'" :aria-describedby="fieldState.postalCode.message ? 'field-error-zip' : undefined" />
+                        <svg v-if="fieldState.postalCode.status === 'error'" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                        <svg v-else-if="fieldState.postalCode.status === 'warning'" class="ct-field-icon ct-field-icon-warning" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                        <svg v-else-if="fieldState.postalCode.status === 'valid'" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       </div>
-                      <p v-if="fieldState.postalCode.error" :id="'field-error-zip'" class="ct-field-error-text" role="alert">{{ fieldState.postalCode.error }}</p>
+                      <p v-if="fieldState.postalCode.message" :id="'field-error-zip'" :class="fieldState.postalCode.status === 'warning' ? 'ct-field-warning-text' : 'ct-field-error-text'" role="alert">{{ fieldState.postalCode.message }}</p>
                     </div>
                   </div>
 
@@ -774,7 +792,9 @@ function getDesignPreviewStyle(designId: string | null): Record<string, string> 
   --_success-light: var(--color-success-light, #dcfce7);
   --_success-border: var(--color-success-border, #16a34a);
   --_error: var(--color-error, #dc2626);
-  /* Field validation */
+  /* Field validation — three tiers: warning (amber), error (red), success (green) */
+  --_field-warning: var(--color-field-warning, #f59e0b);
+  --_field-warning-bg: var(--color-field-warning-bg, #fffbeb);
   --_field-error: var(--color-field-error, #ef4444);
   --_field-error-bg: var(--color-field-error-bg, #fef2f2);
   --_field-success: var(--color-field-success, #22c55e);
@@ -938,7 +958,7 @@ function getDesignPreviewStyle(designId: string | null): Record<string, string> 
 .ct-shipping-section { margin-bottom: var(--_space-6); }
 .ct-radio-group { display: flex; flex-direction: column; gap: var(--_space-4); }
 .ct-radio-label { display: flex; align-items: flex-start; gap: var(--_space-3); cursor: pointer; }
-.ct-radio-input { margin-top: 4px; accent-color: var(--_primary); }
+.ct-radio-input { margin-top: 2px; accent-color: var(--_primary); flex-shrink: 0; }
 .ct-radio-content { flex: 1; }
 .ct-radio-text { font-weight: 700; font-size: var(--_text-sm); margin-bottom: var(--_space-2); }
 .ct-address-box { background-color: var(--_gray-50); padding: var(--_space-3); border-radius: var(--_radius); border: 1px solid var(--_gray-200); font-size: var(--_text-sm); margin-top: var(--_space-2); }
@@ -962,12 +982,16 @@ function getDesignPreviewStyle(designId: string | null): Record<string, string> 
 .ct-input-container > input { grid-column: 1; grid-row: 1; padding-right: 2.25rem; }
 .ct-field-icon { grid-column: 1; grid-row: 1; width: 18px; height: 18px; align-self: center; justify-self: end; margin-right: var(--_space-3); pointer-events: none; }
 .ct-field-icon-error { color: var(--_field-error); }
+.ct-field-icon-warning { color: var(--_field-warning); }
 .ct-field-icon-success { color: var(--_field-success); }
 .ct-field-error { border-color: var(--_field-error) !important; background-color: var(--_field-error-bg); }
 .ct-field-error:focus { outline-color: var(--_field-error) !important; }
+.ct-field-warning { border-color: var(--_field-warning) !important; background-color: var(--_field-warning-bg); }
+.ct-field-warning:focus { outline-color: var(--_field-warning) !important; }
 .ct-field-valid { border-color: var(--_field-success) !important; }
 .ct-field-valid:focus { outline-color: var(--_field-success) !important; }
 .ct-field-error-text { font-size: var(--_text-xs); color: var(--_field-error); margin-top: var(--_space-1); }
+.ct-field-warning-text { font-size: var(--_text-xs); color: var(--_field-warning); margin-top: var(--_space-1); }
 
 /* ==========================================================================
    Address Autocomplete Dropdown
