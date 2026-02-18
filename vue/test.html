@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Commemorative Ticket Module — Vue Test Page</title>
+  <!--
+    Quick standalone test page for the Vue components.
+    No build step needed — open this file directly in a browser.
+
+    Kyle wanted to see the validation states, transitions, and skeleton
+    loading actually working. Can't blame him — reading code isn't the
+    same as clicking through it. So here we are: a CDN-loaded Vue 3
+    page with mock data that lets you test everything. — Tabs
+
+    NOTE: This uses the ES module build of Vue from CDN. The actual
+    .vue SFC files can't run directly in a browser (they need a build
+    step to compile <template> and <style scoped>). So this test page
+    recreates the component inline using Vue's runtime template compiler.
+    The behavior is identical; the code structure is slightly different.
+  -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    /* Minimal page styles */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6;
+      margin: 0;
+      padding: 2rem;
+      color: #111827;
+    }
+    .test-page { max-width: 900px; margin: 0 auto; }
+    .test-header { margin-bottom: 2rem; }
+    .test-header h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .test-header p { color: #6b7280; font-size: 0.875rem; }
+    .test-controls { background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .test-controls label { font-size: 0.875rem; font-weight: 600; }
+    .test-controls button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 0.375rem; background: #fff; cursor: pointer; font-size: 0.875rem; }
+    .test-controls button:hover { background: #f9fafb; }
+    .test-controls button.active { background: #3D5A80; color: #fff; border-color: #3D5A80; }
+    .test-event-log { background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-top: 1.5rem; }
+    .test-event-log h3 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .test-event-log pre { font-size: 0.75rem; background: #f9fafb; padding: 0.75rem; border-radius: 0.25rem; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+
+    /* === Component tokens (same as scoped styles but global for this test) === */
+    :root {
+      --color-primary: #3D5A80;
+      --color-primary-dark: #2B4162;
+      --color-success: #16a34a;
+      --color-success-light: #dcfce7;
+      --color-success-border: #16a34a;
+      --color-error: #dc2626;
+      --color-field-error: #ef4444;
+      --color-field-error-bg: #fef2f2;
+      --color-field-success: #22c55e;
+      --color-white: #ffffff;
+      --color-black: #000000;
+      --color-text: #111827;
+      --color-gray-50: #f9fafb;
+      --color-gray-100: #f3f4f6;
+      --color-gray-200: #e5e7eb;
+      --color-gray-300: #d1d5db;
+      --color-gray-400: #9ca3af;
+      --color-gray-500: #6b7280;
+      --color-gray-600: #4b5563;
+      --spacing-1: 0.25rem;
+      --spacing-2: 0.5rem;
+      --spacing-3: 0.75rem;
+      --spacing-4: 1rem;
+      --spacing-6: 1.5rem;
+      --font-size-xs: 0.75rem;
+      --font-size-sm: 0.875rem;
+      --font-size-base: 1rem;
+      --font-size-lg: 1.125rem;
+      --font-size-xl: 1.25rem;
+      --radius-md: 0.375rem;
+      --radius-full: 9999px;
+    }
+
+    /* Component styles (inlined since we can't use scoped SFC styles) */
+    .ct-container { position: relative; background: var(--color-white); border: 2px solid var(--color-primary); padding: var(--spacing-6); font-family: inherit; font-size: var(--font-size-base); line-height: 1.5; color: var(--color-text); box-sizing: border-box; }
+    .ct-container *, .ct-container *::before, .ct-container *::after { box-sizing: border-box; }
+
+    /* Transitions */
+    .ct-fade-enter-active { transition: opacity 100ms ease-out, transform 100ms ease-out; }
+    .ct-fade-leave-active { transition: opacity 75ms ease-in; }
+    .ct-fade-enter-from { opacity: 0; transform: translateY(6px); }
+    .ct-fade-leave-to { opacity: 0; }
+
+    /* Skeleton */
+    .ct-skeleton { pointer-events: none; }
+    .ct-skeleton-pulse { background: var(--color-gray-200); border-radius: var(--radius-md); animation: ct-pulse 1.5s ease-in-out infinite; }
+    .ct-skeleton-btn { width: 220px; height: 42px; border-radius: var(--radius-md); }
+    @keyframes ct-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Layout */
+    .ct-header-clickable { display: flex; gap: var(--spacing-6); align-items: center; cursor: pointer; }
+    .ct-preview-image { flex-shrink: 0; width: 80px; height: 112px; background: var(--color-gray-300); display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); }
+    .ct-preview-icon { width: 28px; height: 28px; color: var(--color-gray-500); }
+    .ct-content { flex: 1; }
+    .ct-content-padded { padding-right: 3rem; }
+    .ct-title { font-size: var(--font-size-xl); font-weight: 700; text-transform: uppercase; margin-bottom: var(--spacing-3); letter-spacing: 0.025em; line-height: 1.25; outline: none; }
+    .ct-title-centered { font-size: var(--font-size-xl); font-weight: 700; text-transform: uppercase; margin-bottom: var(--spacing-4); letter-spacing: 0.025em; line-height: 1.25; text-align: center; outline: none; }
+    .ct-description { font-size: var(--font-size-sm); margin-bottom: var(--spacing-2); line-height: 1.6; }
+    .ct-sub-description { font-size: var(--font-size-sm); color: var(--color-gray-600); margin-bottom: var(--spacing-2); line-height: 1.6; }
+    .ct-price { font-weight: 700; font-size: var(--font-size-lg); }
+    .ct-chevron-btn { position: absolute; top: var(--spacing-4); right: var(--spacing-4); color: var(--color-black); padding: var(--spacing-1); background: none; border: none; cursor: pointer; transition: color 150ms ease; }
+    .ct-chevron-btn:hover { color: var(--color-primary); }
+    .ct-chevron-icon { width: 24px; height: 24px; }
+    .ct-actions { display: flex; gap: var(--spacing-4); align-items: center; flex-wrap: wrap; margin-top: var(--spacing-4); }
+
+    /* Buttons */
+    .ct-btn-primary { background: var(--color-primary); color: var(--color-white); padding: var(--spacing-3) var(--spacing-6); font-weight: 700; text-transform: uppercase; font-size: var(--font-size-sm); border: none; cursor: pointer; transition: background 150ms ease; }
+    .ct-btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+    .ct-btn-primary:disabled { background: var(--color-gray-400); color: var(--color-gray-200); cursor: not-allowed; }
+    .ct-btn-secondary { padding: var(--spacing-3) var(--spacing-6); border: 2px solid var(--color-gray-400); color: var(--color-black); font-weight: 700; text-transform: uppercase; font-size: var(--font-size-sm); background: transparent; cursor: pointer; }
+    .ct-btn-secondary:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .ct-btn-link { font-size: var(--font-size-sm); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer; color: inherit; }
+    .ct-btn-link:hover { color: var(--color-primary); }
+    .ct-btn-link-bold { font-size: var(--font-size-sm); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer; font-weight: 700; color: inherit; }
+    .ct-btn-link-bold:hover { color: var(--color-primary); }
+
+    /* Stepper */
+    .ct-stepper { display: flex; justify-content: center; margin-bottom: var(--spacing-6); }
+    .ct-stepper-pill { display: inline-flex; align-items: center; gap: var(--spacing-4); background: var(--color-gray-100); border-radius: var(--radius-full); padding: var(--spacing-3) var(--spacing-6); }
+    .ct-step-item { display: flex; align-items: center; gap: var(--spacing-2); }
+    .ct-step-number { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--font-size-xs); font-weight: 700; }
+    .ct-step-active { background: var(--color-primary); color: var(--color-white); }
+    .ct-step-completed { background: var(--color-success); color: var(--color-white); }
+    .ct-step-inactive { background: var(--color-gray-300); color: var(--color-gray-600); }
+    .ct-step-label { font-size: var(--font-size-sm); }
+    .ct-step-label-active { font-weight: 700; }
+    .ct-step-label-inactive { color: var(--color-gray-600); }
+    .ct-step-divider { height: 1px; width: 32px; background: var(--color-gray-400); }
+
+    /* Design Gallery */
+    .ct-section-title { font-weight: 700; text-transform: uppercase; font-size: var(--font-size-xs); margin-bottom: var(--spacing-3); text-align: center; }
+    .ct-section-title-left { font-weight: 700; text-transform: uppercase; font-size: var(--font-size-sm); margin-bottom: var(--spacing-3); text-align: left; }
+    .ct-design-gallery { display: flex; gap: var(--spacing-4); justify-content: center; flex-wrap: wrap; max-width: 620px; margin: 0 auto var(--spacing-6); }
+    .ct-design-card { flex: 0 1 140px; max-width: 140px; min-width: 100px; }
+    .ct-design-preview { height: 128px; margin-bottom: var(--spacing-2); display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); overflow: hidden; }
+    .ct-design-preview-icon { width: 32px; height: 32px; color: var(--color-white); }
+    .ct-design-name { font-size: var(--font-size-xs); font-weight: 700; text-align: center; }
+    .ct-design-description { font-size: var(--font-size-xs); color: var(--color-gray-600); text-align: center; }
+
+    /* Seats */
+    .ct-seat-selection { margin-bottom: var(--spacing-6); }
+    .ct-seat-row { display: flex; align-items: center; gap: var(--spacing-4); margin-bottom: var(--spacing-3); }
+    .ct-seat-label { font-weight: 700; font-size: var(--font-size-sm); width: 128px; flex-shrink: 0; }
+    .ct-seat-select { flex: 1; max-width: 280px; border: 1px solid var(--color-gray-300); padding: var(--spacing-2) var(--spacing-3); background: var(--color-white); font-size: var(--font-size-sm); border-radius: var(--radius-md); }
+    .ct-seat-preview-chip { width: 40px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: var(--radius-md); overflow: hidden; }
+    .ct-seat-preview-icon { width: 16px; height: 16px; }
+    .ct-icon-light { color: var(--color-white); }
+    .ct-icon-dark { color: var(--color-gray-500); }
+
+    /* Special message */
+    .ct-special-message { margin-bottom: var(--spacing-6); }
+    .ct-checkbox-label { display: flex; align-items: center; gap: var(--spacing-2); cursor: pointer; margin-bottom: var(--spacing-2); }
+    .ct-checkbox { width: 16px; height: 16px; accent-color: var(--color-primary); }
+    .ct-checkbox-text { font-size: var(--font-size-sm); font-weight: 700; }
+    .ct-message-input { width: 100%; border: 1px solid var(--color-gray-300); padding: var(--spacing-2) var(--spacing-3); font-size: var(--font-size-sm); border-radius: var(--radius-md); }
+    .ct-message-helper { display: flex; justify-content: space-between; margin-top: var(--spacing-1); }
+    .ct-helper-text { font-size: var(--font-size-xs); color: var(--color-gray-600); }
+
+    /* Price */
+    .ct-price-summary { background: var(--color-gray-50); padding: var(--spacing-3) var(--spacing-4); margin-bottom: var(--spacing-6); border-radius: var(--radius-md); }
+    .ct-price-text { font-size: var(--font-size-sm); }
+    .ct-price-bold { font-weight: 700; }
+    .ct-price-muted { color: var(--color-gray-600); }
+
+    /* Order summary */
+    .ct-order-summary { margin-bottom: var(--spacing-6); }
+    .ct-order-thumbnails { display: flex; gap: var(--spacing-2); justify-content: center; margin-bottom: var(--spacing-3); }
+    .ct-order-thumbnail { width: 64px; }
+    .ct-order-thumb-preview { height: 80px; margin-bottom: var(--spacing-1); display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); overflow: hidden; }
+    .ct-order-thumb-label { font-size: var(--font-size-xs); text-align: center; color: var(--color-gray-600); }
+    .ct-order-summary-box { background: var(--color-gray-50); padding: var(--spacing-3) var(--spacing-4); border-radius: var(--radius-md); }
+    .ct-order-summary-list { list-style: none; padding: 0; margin: 0 0 var(--spacing-2) 0; }
+    .ct-order-summary-list-item { font-size: var(--font-size-sm); padding: var(--spacing-1) 0; display: flex; align-items: center; gap: var(--spacing-2); }
+    .ct-order-summary-list-item::before { content: '•'; color: var(--color-gray-400); font-weight: 700; }
+    .ct-order-summary-total { font-size: var(--font-size-sm); padding-top: var(--spacing-2); border-top: 1px solid var(--color-gray-200); text-align: right; }
+
+    /* Shipping */
+    .ct-shipping-section { margin-bottom: var(--spacing-6); }
+    .ct-radio-group { display: flex; flex-direction: column; gap: var(--spacing-4); }
+    .ct-radio-label { display: flex; align-items: flex-start; gap: var(--spacing-3); cursor: pointer; }
+    .ct-radio-input { margin-top: 4px; accent-color: var(--color-primary); }
+    .ct-radio-content { flex: 1; }
+    .ct-radio-text { font-weight: 700; font-size: var(--font-size-sm); margin-bottom: var(--spacing-2); }
+    .ct-address-box { background: var(--color-gray-50); padding: var(--spacing-3); border-radius: var(--radius-md); border: 1px solid var(--color-gray-200); font-size: var(--font-size-sm); margin-top: var(--spacing-2); }
+    .ct-address-name { font-weight: 700; }
+    .ct-address-form { display: flex; flex-direction: column; gap: var(--spacing-3); margin-top: var(--spacing-3); }
+    .ct-address-input { width: 100%; border: 1px solid var(--color-gray-300); padding: var(--spacing-2) var(--spacing-3); font-size: var(--font-size-sm); border-radius: var(--radius-md); transition: border-color 150ms ease; }
+    .ct-address-input:focus { outline: 2px solid var(--color-primary); outline-offset: -1px; }
+    .ct-address-row { display: flex; gap: var(--spacing-3); }
+    .ct-address-city { flex: 1; }
+    .ct-address-state-wrap { width: 160px; }
+    .ct-address-state-wrap select { width: 100%; }
+    .ct-address-zip { width: 112px; }
+
+    /* Validation states */
+    .ct-field-wrapper { display: flex; flex-direction: column; }
+    .ct-input-container { display: grid; grid-template-columns: 1fr; }
+    .ct-input-container > input { grid-column: 1; grid-row: 1; padding-right: 2.25rem; }
+    .ct-field-icon { grid-column: 1; grid-row: 1; width: 18px; height: 18px; align-self: center; justify-self: end; margin-right: var(--spacing-3); pointer-events: none; }
+    .ct-field-icon-error { color: var(--color-field-error); }
+    .ct-field-icon-success { color: var(--color-field-success); }
+    .ct-field-error { border-color: var(--color-field-error) !important; background: var(--color-field-error-bg); }
+    .ct-field-error:focus { outline-color: var(--color-field-error) !important; }
+    .ct-field-valid { border-color: var(--color-field-success) !important; }
+    .ct-field-valid:focus { outline-color: var(--color-field-success) !important; }
+    .ct-field-error-text { font-size: var(--font-size-xs); color: var(--color-field-error); margin-top: var(--spacing-1); }
+
+    /* Autocomplete */
+    .ct-autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; background: var(--color-white); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); list-style: none; padding: 0; margin: var(--spacing-1) 0 0; max-height: 200px; overflow-y: auto; }
+    .ct-autocomplete-item { padding: var(--spacing-2) var(--spacing-3); font-size: var(--font-size-sm); cursor: pointer; }
+    .ct-autocomplete-item:hover { background: var(--color-gray-50); }
+
+    /* Other */
+    .ct-policy-text { font-size: var(--font-size-xs); color: var(--color-gray-600); margin-bottom: var(--spacing-6); }
+    .ct-success-banner { background: var(--color-success-light); border: 1px solid var(--color-success-border); padding: var(--spacing-2) var(--spacing-4); margin-bottom: var(--spacing-4); display: inline-block; }
+    .ct-success-text { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-success); }
+    .ct-success-summary { margin-bottom: var(--spacing-4); }
+    .ct-success-line { font-size: var(--font-size-sm); margin-bottom: var(--spacing-1); }
+    .ct-error { color: var(--color-error); margin-bottom: var(--spacing-4); font-size: var(--font-size-sm); }
+    .ct-loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 10; }
+    .ct-spinner { width: 32px; height: 32px; border: 3px solid var(--color-gray-300); border-top-color: var(--color-primary); border-radius: 50%; animation: ct-spin 1s linear infinite; }
+    @keyframes ct-spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="test-page">
+    <div class="test-header">
+      <h1>Vue Component Test Page</h1>
+      <p>This page loads the commemorative ticket module with mock data so you can test validation states, transitions, and the full flow. No build step required.</p>
+    </div>
+
+    <div class="test-controls">
+      <label>Test controls:</label>
+      <button :class="{ active: showSkeleton }" @click="showSkeleton = !showSkeleton">
+        {{ showSkeleton ? 'Hide Skeleton' : 'Show Skeleton' }}
+      </button>
+      <button @click="eventLog = ''">Clear Event Log</button>
+    </div>
+
+    <div id="module-mount"></div>
+
+    <div class="test-event-log">
+      <h3>Event Log</h3>
+      <pre>{{ eventLog || '(events will appear here)' }}</pre>
+    </div>
+  </div>
+
+  <script type="module">
+    const { createApp, ref, reactive, computed, watch, nextTick } = Vue
+
+    // ================================================================
+    // Mock data
+    // ================================================================
+    const mockSeats = [
+      { section: 'Orchestra', row: 'B', seatNumber: '13', price: 99, seatId: 100001 },
+      { section: 'Orchestra', row: 'B', seatNumber: '14', price: 99, seatId: 100002 },
+      { section: 'Orchestra', row: 'B', seatNumber: '15', price: 99, seatId: 100003 },
+    ]
+
+    const mockAddress = {
+      name: 'Alex Johnson',
+      street1: '456 Elm St',
+      street2: 'Suite 200',
+      city: 'Chicago',
+      state: 'IL',
+      postalCode: '60601',
+      country: 'US',
+    }
+
+    // ================================================================
+    // Config (inline versions of orgConfig values)
+    // ================================================================
+    const ORG_CONFIG = {
+      orgName: 'Your Organization',
+      seasonLabel: '2025–26 Season',
+      moduleTitle: '2025–26 Season Commemorative Ticket',
+      tagline: 'Get a physical souvenir ticket mailed to you.',
+      donationCopy: 'Includes a donation to support your organization.',
+      supportEmail: 'support@example.org',
+      ticketPrice: 20,
+    }
+
+    const DESIGN_OPTIONS = [
+      { id: 'design-a', name: 'Design A', description: 'Season design', fallbackColor: '#60a5fa', available: true },
+      { id: 'design-b', name: 'Design B', description: 'Classic', fallbackColor: '#fb7185', available: true },
+      { id: 'design-c', name: 'Design C', description: 'Limited edition', fallbackColor: '#fbbf24', available: true },
+    ]
+
+    const US_STATES = [
+      { value: 'AL', label: 'Alabama' }, { value: 'AK', label: 'Alaska' }, { value: 'AZ', label: 'Arizona' },
+      { value: 'AR', label: 'Arkansas' }, { value: 'CA', label: 'California' }, { value: 'CO', label: 'Colorado' },
+      { value: 'CT', label: 'Connecticut' }, { value: 'DE', label: 'Delaware' }, { value: 'DC', label: 'District of Columbia' },
+      { value: 'FL', label: 'Florida' }, { value: 'GA', label: 'Georgia' }, { value: 'HI', label: 'Hawaii' },
+      { value: 'ID', label: 'Idaho' }, { value: 'IL', label: 'Illinois' }, { value: 'IN', label: 'Indiana' },
+      { value: 'IA', label: 'Iowa' }, { value: 'KS', label: 'Kansas' }, { value: 'KY', label: 'Kentucky' },
+      { value: 'LA', label: 'Louisiana' }, { value: 'ME', label: 'Maine' }, { value: 'MD', label: 'Maryland' },
+      { value: 'MA', label: 'Massachusetts' }, { value: 'MI', label: 'Michigan' }, { value: 'MN', label: 'Minnesota' },
+      { value: 'MS', label: 'Mississippi' }, { value: 'MO', label: 'Missouri' }, { value: 'MT', label: 'Montana' },
+      { value: 'NE', label: 'Nebraska' }, { value: 'NV', label: 'Nevada' }, { value: 'NH', label: 'New Hampshire' },
+      { value: 'NJ', label: 'New Jersey' }, { value: 'NM', label: 'New Mexico' }, { value: 'NY', label: 'New York' },
+      { value: 'NC', label: 'North Carolina' }, { value: 'ND', label: 'North Dakota' }, { value: 'OH', label: 'Ohio' },
+      { value: 'OK', label: 'Oklahoma' }, { value: 'OR', label: 'Oregon' }, { value: 'PA', label: 'Pennsylvania' },
+      { value: 'RI', label: 'Rhode Island' }, { value: 'SC', label: 'South Carolina' }, { value: 'SD', label: 'South Dakota' },
+      { value: 'TN', label: 'Tennessee' }, { value: 'TX', label: 'Texas' }, { value: 'UT', label: 'Utah' },
+      { value: 'VT', label: 'Vermont' }, { value: 'VA', label: 'Virginia' }, { value: 'WA', label: 'Washington' },
+      { value: 'WV', label: 'West Virginia' }, { value: 'WI', label: 'Wisconsin' }, { value: 'WY', label: 'Wyoming' },
+    ]
+
+    // SVG icon templates
+    const imgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`
+    const chevronDown = `<svg class="ct-chevron-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`
+    const chevronUp = `<svg class="ct-chevron-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>`
+    const checkIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+    const errorIcon = `<svg class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+    const successIcon = `<svg class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`
+
+    // ================================================================
+    // Test Page App
+    // ================================================================
+    const app = createApp({
+      setup() {
+        const showSkeleton = ref(false)
+        const eventLog = ref('')
+
+        function log(msg) {
+          const time = new Date().toLocaleTimeString()
+          eventLog.value = `[${time}] ${msg}\n` + eventLog.value
+        }
+
+        // Mock API endpoint - simulates success after 800ms
+        // We intercept fetch to make it work without a real server
+        const originalFetch = window.fetch
+        window.fetch = async (url, options) => {
+          if (typeof url === 'string' && url.includes('add-to-order')) {
+            log('API CALL: POST /api/commemorative/add-to-order')
+            log('Payload: ' + options?.body)
+            await new Promise(r => setTimeout(r, 800))
+            return new Response(JSON.stringify({
+              success: true,
+              contributionId: 999999,
+              lineItem: { description: 'Commemorative Tickets', quantity: 2, total: 40 }
+            }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+          }
+          return originalFetch(url, options)
+        }
+
+        return { showSkeleton, eventLog, log, mockSeats, mockAddress, ORG_CONFIG, DESIGN_OPTIONS, US_STATES }
+      },
+      template: `
+        <div style="margin-bottom:1rem" class="test-controls">
+          <label>Test controls:</label>
+          <button :class="{ active: showSkeleton }" @click="showSkeleton = !showSkeleton">
+            {{ showSkeleton ? 'Hide Skeleton' : 'Show Skeleton' }}
+          </button>
+          <button @click="eventLog = ''">Clear Event Log</button>
+        </div>
+
+        <commemorative-module
+          :seats="mockSeats"
+          :address-on-file="mockAddress"
+          session-key="test-session-123"
+          :loading="showSkeleton"
+          @add-to-order="(r) => log('EVENT: add-to-order — ' + JSON.stringify(r))"
+          @remove="() => log('EVENT: remove')"
+          @open-details="() => log('EVENT: open-details clicked')"
+        />
+
+        <div class="test-event-log">
+          <h3>Event Log</h3>
+          <pre>{{ eventLog || '(interact with the module — events appear here)' }}</pre>
+        </div>
+      `
+    })
+
+    // ================================================================
+    // Commemorative Module Component (runtime template version)
+    // Same logic as the SFC, adapted for browser use
+    // ================================================================
+    app.component('commemorative-module', {
+      props: {
+        seats: Array,
+        addressOnFile: Object,
+        sessionKey: String,
+        apiEndpoint: { type: String, default: '/api/commemorative/add-to-order' },
+        loading: Boolean,
+        addressAutocomplete: Function,
+      },
+      emits: ['add-to-order', 'remove', 'open-details'],
+      setup(props, { emit }) {
+        const designs = [...DESIGN_OPTIONS]
+        const pricePerTicket = ORG_CONFIG.ticketPrice
+        const title = ORG_CONFIG.moduleTitle.toUpperCase()
+
+        const state = reactive({
+          currentState: 'collapsed',
+          seatSelections: {},
+          includeSpecialMessage: false,
+          specialMessage: '',
+          shippingOption: 'address-on-file',
+          customAddress: { name: '', street1: '', street2: '', city: '', state: '', postalCode: '' },
+          isLoading: false,
+          error: null,
+        })
+
+        // Field validation
+        const fieldState = reactive({
+          name: { touched: false, valid: null, error: '' },
+          street1: { touched: false, valid: null, error: '' },
+          city: { touched: false, valid: null, error: '' },
+          state: { touched: false, valid: null, error: '' },
+          postalCode: { touched: false, valid: null, error: '' },
+        })
+
+        const ZIP_REGEX = /^\d{5}(-\d{4})?$/
+
+        function validateField(field) {
+          const val = (state.customAddress[field] || '').trim()
+          fieldState[field].touched = true
+          if (field === 'postalCode') {
+            if (!val) { fieldState[field].valid = false; fieldState[field].error = 'This field is needed for shipping' }
+            else if (!ZIP_REGEX.test(val)) { fieldState[field].valid = false; fieldState[field].error = "That doesn't look like a valid ZIP code — US ZIPs are 5 digits (or 5+4 like 10001-1234)" }
+            else { fieldState[field].valid = true; fieldState[field].error = '' }
+          } else if (field === 'name' && val.length > 0 && val.length < 2) {
+            fieldState[field].valid = false; fieldState[field].error = 'Name should be at least 2 characters'
+          } else if (field === 'state') {
+            if (!val) { fieldState[field].valid = false; fieldState[field].error = 'Please select a state' }
+            else { fieldState[field].valid = true; fieldState[field].error = '' }
+          } else {
+            if (!val) { fieldState[field].valid = false; fieldState[field].error = 'This field is needed for shipping' }
+            else { fieldState[field].valid = true; fieldState[field].error = '' }
+          }
+        }
+
+        function fieldClass(field) {
+          if (!fieldState[field].touched || fieldState[field].valid === null) return 'ct-address-input'
+          if (fieldState[field].valid === false) return 'ct-address-input ct-field-error'
+          return 'ct-address-input ct-field-valid'
+        }
+
+        // Init seat selections
+        watch(() => props.seats, (seats) => {
+          if (!seats) return
+          seats.forEach(s => { const k = s.row+'-'+s.seatNumber; if (!(k in state.seatSelections)) state.seatSelections[k] = '' })
+        }, { immediate: true })
+
+        const selectedSeats = computed(() => (props.seats || []).filter(s => { const k = s.row+'-'+s.seatNumber; return state.seatSelections[k] && state.seatSelections[k] !== '' }))
+        const totalPrice = computed(() => selectedSeats.value.length * pricePerTicket)
+        const canContinue = computed(() => selectedSeats.value.length > 0)
+
+        const selectedSeatsWithDesign = computed(() => selectedSeats.value.map(s => {
+          const k = s.row+'-'+s.seatNumber
+          const d = designs.find(x => x.id === state.seatSelections[k])
+          return { seat: s, designName: d?.name || 'Unknown', designId: state.seatSelections[k] }
+        }))
+
+        const addedSummary = computed(() => selectedSeats.value.map(s => {
+          const k = s.row+'-'+s.seatNumber
+          const d = designs.find(x => x.id === state.seatSelections[k])
+          return `Row ${s.row} Seat ${s.seatNumber} – ${d?.name || 'Unknown'}`
+        }))
+
+        // Focus management
+        const headingRef = ref(null)
+        watch(() => state.currentState, async () => { await nextTick(); headingRef.value?.focus() })
+
+        function handleToggle() {
+          if (state.currentState === 'collapsed') state.currentState = 'expanded_step1'
+          else if (state.currentState !== 'success') state.currentState = 'collapsed'
+        }
+
+        async function handleAddToOrder() {
+          state.isLoading = true; state.error = null
+          const addr = state.shippingOption === 'address-on-file' && props.addressOnFile
+            ? props.addressOnFile
+            : { ...state.customAddress, country: 'US' }
+          const sels = selectedSeats.value.map(s => ({ seatId: s.seatId, section: s.section, row: s.row, seatNumber: s.seatNumber, designId: state.seatSelections[s.row+'-'+s.seatNumber] }))
+          try {
+            const resp = await fetch(props.apiEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionKey: props.sessionKey, selections: sels, specialMessage: state.includeSpecialMessage ? state.specialMessage : undefined, shippingAddress: addr, totalPrice: totalPrice.value }) })
+            const data = await resp.json()
+            if (!resp.ok || !data.success) throw new Error(data.error || 'Failed')
+            state.currentState = 'success'; state.isLoading = false
+            emit('add-to-order', { success: true, quantity: selectedSeats.value.length, total: totalPrice.value, selections: selectedSeatsWithDesign.value })
+          } catch (e) { state.error = e.message; state.isLoading = false }
+        }
+
+        function handleRemove() {
+          emit('remove')
+          props.seats.forEach(s => { state.seatSelections[s.row+'-'+s.seatNumber] = '' })
+          state.includeSpecialMessage = false; state.specialMessage = ''; state.shippingOption = 'address-on-file'
+          state.customAddress = { name: '', street1: '', street2: '', city: '', state: '', postalCode: '' }
+          state.error = null; state.currentState = 'collapsed'
+          Object.keys(fieldState).forEach(k => { fieldState[k] = { touched: false, valid: null, error: '' } })
+        }
+
+        function getStyle(designId) {
+          const d = designs.find(x => x.id === designId)
+          return d?.fallbackColor ? { backgroundColor: d.fallbackColor } : { backgroundColor: 'var(--color-gray-300)' }
+        }
+
+        return {
+          state, fieldState, designs, pricePerTicket, title, headingRef, US_STATES,
+          selectedSeats, totalPrice, canContinue, selectedSeatsWithDesign, addedSummary,
+          validateField, fieldClass, handleToggle, handleAddToOrder, handleRemove, getStyle,
+          ORG_CONFIG, emit,
+        }
+      },
+      template: `
+        <!-- Skeleton -->
+        <div v-if="loading" class="ct-container ct-skeleton">
+          <div class="ct-header-clickable" style="pointer-events:none">
+            <div class="ct-preview-image ct-skeleton-pulse"></div>
+            <div class="ct-content" style="display:flex;flex-direction:column;gap:0.5rem">
+              <div class="ct-skeleton-pulse" style="width:70%;height:1.25rem;border-radius:4px"></div>
+              <div class="ct-skeleton-pulse" style="width:55%;height:0.875rem;border-radius:4px"></div>
+              <div class="ct-skeleton-pulse" style="width:40%;height:0.875rem;border-radius:4px"></div>
+              <div class="ct-skeleton-pulse" style="width:20%;height:1.125rem;border-radius:4px"></div>
+            </div>
+          </div>
+          <div class="ct-actions" style="pointer-events:none">
+            <div class="ct-skeleton-btn ct-skeleton-pulse"></div>
+            <div class="ct-skeleton-pulse" style="width:100px;height:0.875rem;border-radius:4px"></div>
+          </div>
+        </div>
+
+        <!-- Module -->
+        <Transition v-else name="ct-fade" mode="out-in">
+
+          <!-- Collapsed -->
+          <div v-if="state.currentState==='collapsed'" key="c" class="ct-container">
+            <div class="ct-header-clickable" @click="handleToggle">
+              <div class="ct-preview-image"><svg class="ct-preview-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div>
+              <div class="ct-content">
+                <h3 ref="headingRef" class="ct-title" tabindex="-1">{{ title }}</h3>
+                <p class="ct-description">{{ ORG_CONFIG.tagline }}</p>
+                <p class="ct-sub-description">{{ ORG_CONFIG.donationCopy }}</p>
+                <div class="ct-price">\${{ pricePerTicket }} each</div>
+              </div>
+              <button class="ct-chevron-btn" @click.stop="handleToggle"><svg class="ct-chevron-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+            </div>
+            <div class="ct-actions">
+              <button class="ct-btn-primary" @click="state.currentState='expanded_step1'">Add commemorative tickets</button>
+              <button class="ct-btn-link" @click="emit('open-details')">Details & policies</button>
+            </div>
+          </div>
+
+          <!-- Step 1 -->
+          <div v-else-if="state.currentState==='expanded_step1'" key="s1" class="ct-container">
+            <button class="ct-chevron-btn" @click="handleToggle"><svg class="ct-chevron-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg></button>
+            <div class="ct-content-padded">
+              <h3 ref="headingRef" class="ct-title-centered" tabindex="-1">{{ title }}</h3>
+              <div class="ct-stepper"><div class="ct-stepper-pill"><div class="ct-step-item"><div class="ct-step-number ct-step-active">1</div><span class="ct-step-label ct-step-label-active">Choose designs</span></div><div class="ct-step-divider"></div><div class="ct-step-item"><div class="ct-step-number ct-step-inactive">2</div><span class="ct-step-label ct-step-label-inactive">Shipping</span></div></div></div>
+              <div><h4 class="ct-section-title">Available Designs</h4>
+                <div class="ct-design-gallery">
+                  <div v-for="d in designs" :key="d.id" class="ct-design-card">
+                    <div class="ct-design-preview" :style="getStyle(d.id)"><svg class="ct-design-preview-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div>
+                    <p class="ct-design-name">{{ d.name }}</p><p class="ct-design-description">{{ d.description }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="ct-seat-selection"><h4 class="ct-section-title-left">Choose for Your Seats</h4>
+                <div v-for="s in seats" :key="s.row+'-'+s.seatNumber" class="ct-seat-row">
+                  <label class="ct-seat-label">Row {{ s.row }} &bull; Seat {{ s.seatNumber }}</label>
+                  <select v-model="state.seatSelections[s.row+'-'+s.seatNumber]" class="ct-seat-select">
+                    <option value="">None</option>
+                    <option v-for="d in designs" :key="d.id" :value="d.id">{{ d.name }} — {{ d.description }}</option>
+                  </select>
+                  <div class="ct-seat-preview-chip" :style="getStyle(state.seatSelections[s.row+'-'+s.seatNumber] || null)">
+                    <svg :class="['ct-seat-preview-icon', state.seatSelections[s.row+'-'+s.seatNumber] ? 'ct-icon-light' : 'ct-icon-dark']" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  </div>
+                </div>
+              </div>
+              <div class="ct-special-message">
+                <label class="ct-checkbox-label"><input v-model="state.includeSpecialMessage" type="checkbox" class="ct-checkbox"/><span class="ct-checkbox-text">Add a special message (optional)</span></label>
+                <div v-if="state.includeSpecialMessage"><input v-model="state.specialMessage" type="text" placeholder="Enter your message" class="ct-message-input" maxlength="80"/><div class="ct-message-helper"><p class="ct-helper-text">Printed on each commemorative ticket.</p><p class="ct-helper-text">Max 80 characters</p></div></div>
+              </div>
+              <div class="ct-price-summary" aria-live="polite"><p class="ct-price-text"><template v-if="selectedSeats.length>0"><span class="ct-price-bold">\${{ pricePerTicket }} each</span> &bull; <span class="ct-price-bold">\${{ totalPrice }} total</span></template><span v-else class="ct-price-muted">No seats selected</span></p></div>
+              <div class="ct-actions"><button class="ct-btn-primary" :disabled="!canContinue" @click="state.currentState='expanded_step2'">Continue to shipping</button><button class="ct-btn-link" @click="emit('open-details')">Details & policies</button></div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div v-else-if="state.currentState==='expanded_step2'" key="s2" class="ct-container">
+            <div v-if="state.isLoading" class="ct-loading-overlay"><div class="ct-spinner"></div></div>
+            <button class="ct-chevron-btn" @click="handleToggle"><svg class="ct-chevron-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg></button>
+            <div class="ct-content-padded">
+              <h3 ref="headingRef" class="ct-title-centered" tabindex="-1">{{ title }}</h3>
+              <div class="ct-stepper"><div class="ct-stepper-pill"><div class="ct-step-item"><div class="ct-step-number ct-step-completed"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span class="ct-step-label ct-step-label-inactive">Choose designs</span></div><div class="ct-step-divider"></div><div class="ct-step-item"><div class="ct-step-number ct-step-active">2</div><span class="ct-step-label ct-step-label-active">Shipping</span></div></div></div>
+
+              <div class="ct-order-summary"><h4 class="ct-section-title">Your Order</h4>
+                <div class="ct-order-thumbnails"><div v-for="s in selectedSeats" :key="'t-'+s.row+'-'+s.seatNumber" class="ct-order-thumbnail"><div class="ct-order-thumb-preview" :style="getStyle(state.seatSelections[s.row+'-'+s.seatNumber])"><svg style="width:20px;height:20px;color:white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div><p class="ct-order-thumb-label">Row {{ s.row }} {{ s.seatNumber }}</p></div></div>
+                <div class="ct-order-summary-box"><ul class="ct-order-summary-list"><li v-for="i in selectedSeatsWithDesign" :key="'s-'+i.seat.row+'-'+i.seat.seatNumber" class="ct-order-summary-list-item">Row {{ i.seat.row }} Seat {{ i.seat.seatNumber }} &mdash; {{ i.designName }}</li></ul><p class="ct-order-summary-total"><span class="ct-price-bold">\${{ totalPrice }} total</span></p></div>
+              </div>
+
+              <div class="ct-shipping-section"><h4 class="ct-section-title-left">Shipping</h4>
+                <div class="ct-radio-group">
+                  <label class="ct-radio-label"><input v-model="state.shippingOption" type="radio" value="address-on-file" class="ct-radio-input"/><div class="ct-radio-content"><p class="ct-radio-text">Ship to my address on file</p><div v-if="state.shippingOption==='address-on-file' && addressOnFile" class="ct-address-box"><p class="ct-address-name">{{ addressOnFile.name }}</p><p>{{ addressOnFile.street1 }}</p><p v-if="addressOnFile.street2">{{ addressOnFile.street2 }}</p><p>{{ addressOnFile.city }}, {{ addressOnFile.state }} {{ addressOnFile.postalCode }}</p></div></div></label>
+
+                  <label class="ct-radio-label"><input v-model="state.shippingOption" type="radio" value="different-address" class="ct-radio-input"/><div class="ct-radio-content"><p class="ct-radio-text">Use a different address</p>
+                    <div v-if="state.shippingOption==='different-address'" class="ct-address-form">
+
+                      <div class="ct-field-wrapper"><div class="ct-input-container"><input :value="state.customAddress.name" @input="state.customAddress.name=$event.target.value" @blur="validateField('name')" type="text" placeholder="Name" :class="fieldClass('name')" :aria-invalid="fieldState.name.valid===false"/><svg v-if="fieldState.name.valid===false" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><svg v-else-if="fieldState.name.valid===true" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><p v-if="fieldState.name.error" class="ct-field-error-text" role="alert">{{ fieldState.name.error }}</p></div>
+
+                      <div class="ct-field-wrapper"><div class="ct-input-container"><input :value="state.customAddress.street1" @input="state.customAddress.street1=$event.target.value" @blur="validateField('street1')" type="text" placeholder="Address Line 1" :class="fieldClass('street1')" :aria-invalid="fieldState.street1.valid===false"/><svg v-if="fieldState.street1.valid===false" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><svg v-else-if="fieldState.street1.valid===true" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><p v-if="fieldState.street1.error" class="ct-field-error-text" role="alert">{{ fieldState.street1.error }}</p></div>
+
+                      <input v-model="state.customAddress.street2" type="text" placeholder="Address Line 2 (optional)" class="ct-address-input"/>
+
+                      <div class="ct-address-row">
+                        <div class="ct-field-wrapper ct-address-city"><div class="ct-input-container"><input :value="state.customAddress.city" @input="state.customAddress.city=$event.target.value" @blur="validateField('city')" type="text" placeholder="City" :class="fieldClass('city')"/><svg v-if="fieldState.city.valid===false" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><svg v-else-if="fieldState.city.valid===true" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><p v-if="fieldState.city.error" class="ct-field-error-text" role="alert">{{ fieldState.city.error }}</p></div>
+
+                        <div class="ct-field-wrapper ct-address-state-wrap"><select v-model="state.customAddress.state" @change="validateField('state')" @blur="validateField('state')" :class="[fieldState.state.touched && fieldState.state.valid===false ? 'ct-seat-select ct-field-error' : fieldState.state.valid===true ? 'ct-seat-select ct-field-valid' : 'ct-seat-select']"><option value="" disabled>State</option><option v-for="s in US_STATES" :key="s.value" :value="s.value">{{ s.label }}</option></select><p v-if="fieldState.state.error" class="ct-field-error-text" role="alert">{{ fieldState.state.error }}</p></div>
+
+                        <div class="ct-field-wrapper ct-address-zip"><div class="ct-input-container"><input :value="state.customAddress.postalCode" @input="state.customAddress.postalCode=$event.target.value" @blur="validateField('postalCode')" type="text" placeholder="ZIP" inputmode="numeric" :class="fieldClass('postalCode')"/><svg v-if="fieldState.postalCode.valid===false" class="ct-field-icon ct-field-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><svg v-else-if="fieldState.postalCode.valid===true" class="ct-field-icon ct-field-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><p v-if="fieldState.postalCode.error" class="ct-field-error-text" role="alert">{{ fieldState.postalCode.error }}</p></div>
+                      </div>
+
+                      <p class="ct-helper-text">This does not update your saved address in your account.</p>
+                    </div>
+                  </div></label>
+                </div>
+              </div>
+
+              <p class="ct-policy-text">Non-refundable (donation). Printed + mailed after purchase.</p>
+              <p v-if="state.error" class="ct-error" role="alert">{{ state.error }}</p>
+              <div class="ct-actions">
+                <button class="ct-btn-secondary" @click="state.currentState='expanded_step1'">Back</button>
+                <button class="ct-btn-primary" :disabled="state.isLoading" @click="handleAddToOrder">{{ state.isLoading ? 'Adding...' : 'Add to order' }}</button>
+                <button class="ct-btn-link" @click="emit('open-details')">Details & policies</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Success -->
+          <div v-else key="ok" class="ct-container">
+            <button class="ct-chevron-btn" @click="handleToggle"><svg class="ct-chevron-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="ct-content-padded">
+              <h3 ref="headingRef" class="ct-title" tabindex="-1">{{ title }}</h3>
+              <div class="ct-success-banner"><p class="ct-success-text">&#10003; Commemorative tickets added.</p></div>
+              <div class="ct-success-summary"><p v-for="(l,i) in addedSummary" :key="i" class="ct-success-line">{{ l }}</p></div>
+              <div class="ct-actions"><button class="ct-btn-link-bold" @click="state.currentState='expanded_step1'">Edit</button><button class="ct-btn-link-bold" @click="handleRemove">Remove</button><button class="ct-btn-link" @click="emit('open-details')">Details & policies</button></div>
+            </div>
+          </div>
+
+        </Transition>
+      `
+    })
+
+    app.mount('.test-page')
+  </script>
+</body>
+</html>
