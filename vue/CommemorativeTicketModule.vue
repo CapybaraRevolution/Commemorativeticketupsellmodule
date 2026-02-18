@@ -946,7 +946,7 @@ function getDesignPreviewStyle(designId: string | null): Record<string, string> 
 .ct-address-form { display: flex; flex-direction: column; gap: var(--_space-3); margin-top: var(--_space-3); }
 .ct-address-input { width: 100%; border: 1px solid var(--_gray-300); padding: var(--_space-2) var(--_space-3); font-size: var(--_text-sm); font-family: var(--_font-family); border-radius: var(--_radius); transition: border-color 150ms ease, outline-color 150ms ease; }
 .ct-address-input:focus { outline: 2px solid var(--_primary); outline-offset: -1px; }
-.ct-address-row { display: flex; gap: var(--_space-3); }
+.ct-address-row { display: flex; gap: var(--_space-3); align-items: flex-start; }
 .ct-address-city { flex: 1; }
 .ct-address-state-wrap { width: 160px; }
 .ct-address-state-wrap select { width: 100%; }
