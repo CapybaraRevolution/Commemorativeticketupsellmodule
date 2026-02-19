@@ -75,6 +75,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'add-to-order': [result: {
     success: boolean
+    contributionId?: number
     quantity: number
     total: number
     selections: Array<{ seat: Seat; designId: string; designName: string }>
@@ -378,8 +379,12 @@ async function handleAddToOrder() {
     state.currentState = 'success'
     state.isLoading = false
 
+    // We include contributionId in the event payload so the parent page
+    // can correlate this line item back to the Tessitura record. Useful
+    // for cart display, removal, and post-checkout WWL submission. — Tabs
     emit('add-to-order', {
       success: true,
+      contributionId: data.contributionId,
       quantity: selectedSeats.value.length,
       total: totalPrice.value,
       selections: selectedSeatsWithDesign.value.map(s => ({
